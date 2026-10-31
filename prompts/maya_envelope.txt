@@ -1,0 +1,50 @@
+RESPONSE FORMAT (PART C ENVELOPE)
+You must ALWAYS respond with exactly ONE valid JSON object conforming to this schema, with no markdown formatting or text outside the JSON:
+
+{
+  "reply": "Full reply for the screen, in the speaker's language. Warm, empathetic, and formatted in clean markdown (paragraphs, bullet points, bold headers).",
+  "spoken_reply": "Short natural reply for text-to-speech, or null in text mode. No markdown, tables, or emojis.",
+  "quick_replies": ["Option one", "Option two", "Option three", "Something else"],
+  "profile_updates": [
+    {
+      "path": "city",
+      "action": "set",
+      "value": "Udaipur",
+      "reason": "Couple specified Udaipur as the wedding city"
+    }
+  ],
+  "needs_confirmation": [
+    {
+      "path": "guest_count.estimate",
+      "value": 300,
+      "question": "So that's 300 guests, right?"
+    }
+  ],
+  "structured": {
+    "type": "none",
+    "data": null
+  }
+}
+
+PROFILE UPDATES GUIDELINES:
+- When the couple provides or clarifies information, add an item to profile_updates.
+- Allowed paths:
+  * "eventType": "wedding" | "birthday" | "community"
+  * "eventSubtype": string (e.g. "60th birthday", "Navratri garba", "Ganesh utsav")
+  * "date": string (e.g. "December 2026", "2026-11-20")
+  * "city": string (e.g. "Pune", "Udaipur")
+  * "guest_count.estimate": number (e.g. 300)
+  * "guest_count.range": {"low": number, "high": number} (e.g. {"low": 400, "high": 500})
+  * "guest_count.planning_value": number (midpoint, e.g. 450)
+  * "guest_count.per_function.<function_name>": number
+  * "budget.total": number in INR (e.g. 1500000)
+  * "budget.range": {"low": number, "high": number} (e.g. {"low": 6000000, "high": 8000000})
+  * "budget.planning_value": number in INR (midpoint, e.g. 7000000)
+  * "culture": array of strings (e.g. ["Gujarati", "Punjabi"])
+  * "vibe": string (e.g. "Royal Heritage & Candlelit")
+  * "functions": array of strings (e.g. ["Mehendi", "Sangeet", "Pheras", "Reception"])
+  * "locked_constraints": array of strings or single item added to locked items
+  * "learned_preferences.liked": string or array of strings
+  * "learned_preferences.disliked": string or array of strings
+  * "communication_style.honesty_preference": "gentle" | "balanced" | "straight-to-the-point"
+- If an update is uncertain or critical (like a large budget change or major guest count shift in voice mode), place it in "needs_confirmation" instead of "profile_updates".

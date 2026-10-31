@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+:root {
+  /* Maison Editorial Design Tokens */
+  --cream-bg: #FCFBF8;
+  --beige-band: #F1EDE8;
+  --charcoal-text: #2A2521;
+  --grey-muted: #6B645E;
+
+  /* Default / Wedding Accents (Terracotta) */
+  --accent-primary: #A8603E;
+  --accent-dark: #94512F;
+
+  /* Explicit per-event tokens */
+  --wedding-primary: #A8603E;
+  --wedding-dark: #94512F;
+  --birthday-primary: #9B4A6A;
+  --birthday-dark: #863A57;
+  --community-primary: #A35700;
+  --community-dark: #8E4A00;
+
+  /* Aliases for backwards compatibility */
+  --terracotta: var(--accent-primary);
+  --terracotta-dark: var(--accent-dark);
+
+  --footer-dark: #2B2621;
+  --border-hairline: #E4DED6;
+  --blank-block: #E9E3DB;
+}
+
+/* Event-type themed accent overrides */
+[data-event-type="wedding"] {
+  --accent-primary: var(--wedding-primary);
+  --accent-dark: var(--wedding-dark);
+}
+
+[data-event-type="birthday"] {
+  --accent-primary: var(--birthday-primary);
+  --accent-dark: var(--birthday-dark);
+}
+
+[data-event-type="community"] {
+  --accent-primary: var(--community-primary);
+  --accent-dark: var(--community-dark);
+}
+
+@theme {
+  --color-cream: var(--cream-bg);
+  --color-beige: var(--beige-band);
+  --color-charcoal: var(--charcoal-text);
+  --color-muted: var(--grey-muted);
+  --color-accent: var(--accent-primary);
+  --color-accent-dark: var(--accent-dark);
+  --color-terracotta: var(--accent-primary);
+  --color-terracotta-dark: var(--accent-dark);
+  --color-footer: var(--footer-dark);
+  --color-hairline: var(--border-hairline);
+  --color-blank: var(--blank-block);
+
+  --font-serif: var(--font-cormorant), var(--font-serif-devanagari), var(--font-serif-gujarati), var(--font-serif-gurmukhi), 'Cormorant Garamond', Georgia, serif;
+  --font-heading: var(--font-cormorant), var(--font-serif-devanagari), var(--font-serif-gujarati), var(--font-serif-gurmukhi), 'Cormorant Garamond', Georgia, serif;
+  --font-sans: var(--font-inter), var(--font-sans-devanagari), var(--font-sans-gujarati), var(--font-sans-gurmukhi), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--cream-bg);
+  color: var(--charcoal-text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Indian regional scripts constraints: no uppercase transform, normal tracking, no italics, terracotta emphasis */
+:lang(hi),
+:lang(mr),
+:lang(gu),
+:lang(pa) {
+  font-style: normal !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+:lang(hi) .font-micro,
+:lang(mr) .font-micro,
+:lang(gu) .font-micro,
+:lang(pa) .font-micro,
+:lang(hi) .font-nav,
+:lang(mr) .font-nav,
+:lang(gu) .font-nav,
+:lang(pa) .font-nav {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+:lang(hi) em,
+:lang(hi) i,
+:lang(hi) .italic,
+:lang(mr) em,
+:lang(mr) i,
+:lang(mr) .italic,
+:lang(gu) em,
+:lang(gu) i,
+:lang(gu) .italic,
+:lang(pa) em,
+:lang(pa) i,
+:lang(pa) .italic {
+  font-style: normal !important;
+  color: var(--terracotta) !important;
+}
+
+/* Page Change Short Fade Animation */
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition-fade {
+  animation: pageFadeIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Editorial rule: Square corners everywhere (radius 0) */
+* {
+  border-radius: 0 !important;
+}
+
+/* Micro-labels and button typography utility classes */
+.font-micro {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.font-nav {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+/* Accessibility: Consistent visible terracotta focus rings */
+:focus-visible {
+  outline: 2px solid var(--terracotta);
+  outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Use even, lining numbers in serif headings and amounts (Cormorant defaults to old-style) */
+.font-serif,
+.font-heading,
+h1,
+h2,
+h3,
+h4 {
+  font-variant-numeric: lining-nums tabular-nums;
+}

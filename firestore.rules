@@ -1,0 +1,92 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isMemberOfHome(homeId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/homes/$(homeId)/members/$(request.auth.uid));
+    }
+
+    function getMemberData(homeId) {
+      return get(/databases/$(database)/documents/homes/$(homeId)/members/$(request.auth.uid)).data;
+    }
+
+    function isCouple(homeId) {
+      return isMemberOfHome(homeId) && getMemberData(homeId).permission == 'couple';
+    }
+
+    function canSeeBudget(homeId) {
+      return isCouple(homeId) || (isMemberOfHome(homeId) && getMemberData(homeId).canSeeBudget == true);
+    }
+
+    // ALL WRITES MUST GO THROUGH API ROUTES (firebase-admin).
+    // Client direct writes are strictly DENIED across the entire database.
+
+    // homes/{homeId}
+    match /homes/{homeId} {
+      allow read: if isMemberOfHome(homeId);
+      allow write: if false;
+
+      // homes/{homeId}/private/budget
+      match /private/budget {
+        allow read: if canSeeBudget(homeId);
+        allow write: if false;
+      }
+
+      // homes/{homeId}/members/{uid}
+      match /members/{uid} {
+        allow read: if isMemberOfHome(homeId);
+        allow write: if false;
+      }
+
+      // homes/{homeId}/rooms/{roomId}
+      match /rooms/{roomId} {
+        allow read: if isMemberOfHome(homeId);
+        allow write: if false;
+
+        // homes/{homeId}/rooms/{roomId}/messages/{messageId}
+        match /messages/{messageId} {
+          allow read: if isMemberOfHome(homeId);
+          allow write: if false;
+        }
+
+        // homes/{homeId}/rooms/{roomId}/ideas/{ideaId}
+        match /ideas/{ideaId} {
+          allow read: if isMemberOfHome(homeId);
+          allow write: if false;
+        }
+      }
+
+      // homes/{homeId}/plan
+      match /plan/{docId} {
+        allow read: if isMemberOfHome(homeId);
+        allow write: if false;
+      }
+
+      // homes/{homeId}/decisions/{decisionId}
+      match /decisions/{decisionId} {
+        allow read: if isMemberOfHome(homeId);
+        allow write: if false;
+      }
+
+      // homes/{homeId}/pendingConfirmations/{confirmationId}
+      match /pendingConfirmations/{confirmationId} {
+        allow read: if isCouple(homeId);
+        allow write: if false;
+      }
+    }
+
+    // invites/{token}
+    match /invites/{token} {
+      // Invites are read and accepted via server API
+      allow read, write: if false;
+    }
+  }
+}
+
