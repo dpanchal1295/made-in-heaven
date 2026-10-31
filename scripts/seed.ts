@@ -34,6 +34,12 @@ async function seed() {
 
   // Validation: If STORAGE_DRIVER=firestore, credentials must be present and valid
   if (driver === 'firestore') {
+    if (!process.argv.includes('--allow-firestore')) {
+      console.error(
+        '\n[ERROR] Refusing to touch Firestore in seed script without the explicit --allow-firestore flag.\n'
+      );
+      process.exit(1);
+    }
     const hasServiceAccount = Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64);
     const hasDirectCreds = Boolean(
       process.env.FIREBASE_PROJECT_ID &&

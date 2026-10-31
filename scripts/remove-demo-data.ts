@@ -4,6 +4,11 @@ loadEnvConfig(process.cwd());
 import { getFirebaseAdminApp, getAdminDb } from '../src/lib/firebase/admin';
 
 async function main() {
+  const allowFirestore = process.argv.includes('--allow-firestore');
+  if (!allowFirestore) {
+    console.error('BLOCKED: Must pass --allow-firestore');
+    process.exit(1);
+  }
   const isApply = process.argv.includes('--apply') || process.argv.includes('--delete');
   const demoHomeIds = ['demo-home-1', 'demo-home-2', 'demo-home-3'];
 

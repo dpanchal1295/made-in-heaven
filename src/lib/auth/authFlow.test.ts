@@ -18,11 +18,24 @@ describe('Auth & Multi-Tenant Security Tests', () => {
     });
     assert.strictEqual(checkOrigin(vercelReq), true);
 
-    const previewReq = new Request('https://made-in-heaven-preview-123.vercel.app/api/homes', {
+    const previewReq = new Request('https://made-in-heaven-uorx-abc1234-dpanchal1295s-projects.vercel.app/api/homes', {
+      method: 'POST',
+      headers: { origin: 'https://made-in-heaven-uorx-abc1234-dpanchal1295s-projects.vercel.app' },
+    });
+    assert.strictEqual(checkOrigin(previewReq), true);
+
+    // Other vercel domains must be rejected
+    const otherVercelReq = new Request('https://made-in-heaven-preview-123.vercel.app/api/homes', {
       method: 'POST',
       headers: { origin: 'https://made-in-heaven-preview-123.vercel.app' },
     });
-    assert.strictEqual(checkOrigin(previewReq), true);
+    assert.strictEqual(checkOrigin(otherVercelReq), false);
+
+    const genericVercelReq = new Request('https://random-app.vercel.app/api/homes', {
+      method: 'POST',
+      headers: { origin: 'https://random-app.vercel.app' },
+    });
+    assert.strictEqual(checkOrigin(genericVercelReq), false);
 
     // Malicious or unauthorized origin
     const evilReq = new Request('https://made-in-heaven-uorx.vercel.app/api/homes', {

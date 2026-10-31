@@ -6,6 +6,8 @@ const ALLOWED_ORIGINS = new Set([
   'https://made-in-heaven-uorx.vercel.app',
 ]);
 
+const STRICT_PREVIEW_REGEX = /^https:\/\/made-in-heaven-uorx-[a-z0-9]+-dpanchal1295s-projects\.vercel\.app$/;
+
 /**
  * Validates request Origin / Referer for state-changing HTTP methods (POST, PATCH, DELETE).
  * Returns true if valid, false if origin is untrusted or missing when required.
@@ -18,8 +20,8 @@ export function checkOrigin(req: Request | NextRequest): boolean {
     if (/^https?:\/\/localhost(:\d+)?$/.test(origin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
       return true;
     }
-    // Allow vercel preview deployments matching made-in-heaven-*.vercel.app
-    if (/^https:\/\/made-in-heaven(-[a-z0-9_-]+)?\.vercel\.app$/.test(origin)) {
+    // Allow vercel preview deployments matching our specific project pattern only
+    if (STRICT_PREVIEW_REGEX.test(origin)) {
       return true;
     }
     return false;
@@ -35,7 +37,7 @@ export function checkOrigin(req: Request | NextRequest): boolean {
       if (/^https?:\/\/localhost(:\d+)?$/.test(refererOrigin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(refererOrigin)) {
         return true;
       }
-      if (/^https:\/\/made-in-heaven(-[a-z0-9_-]+)?\.vercel\.app$/.test(refererOrigin)) {
+      if (STRICT_PREVIEW_REGEX.test(refererOrigin)) {
         return true;
       }
       return false;
