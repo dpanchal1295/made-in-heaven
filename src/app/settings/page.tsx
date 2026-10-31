@@ -16,7 +16,16 @@ import {
   Modal,
   Toast,
 } from '@/components/ui';
-import { RotateCcw, Trash2, AlertCircle, LogOut } from 'lucide-react';
+import {
+  RotateCcw,
+  LogOut,
+  Globe,
+  User,
+  Volume2,
+  Lock,
+  Calendar,
+  Check,
+} from 'lucide-react';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -24,22 +33,46 @@ export default function SettingsPage() {
 
   // Local settings state
   const [voiceSpeakerEnabled, setVoiceSpeakerEnabled] = useState(true);
-  const [voiceMicEnabled, setVoiceMicEnabled] = useState(true);
+  const [displayName, setDisplayName] = useState(user?.name || '');
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [honestyPreference, setHonestyPreference] = useState<'gentle' | 'balanced' | 'straight-to-the-point'>('balanced');
-  const [budgetPrivacyCoupleOnly, setBudgetPrivacyCoupleOnly] = useState(false);
-  const [notifIdeas, setNotifIdeas] = useState(true);
-  const [notifVotes, setNotifVotes] = useState(true);
-  const [notifMaya, setNotifMaya] = useState(true);
+  const [homeDetails, setHomeDetails] = useState<{
+    coupleNames: string;
+    eventType: string;
+    date?: string;
+    city?: string;
+  } | null>(null);
 
-  // Modals for Data management
-  const [isClearPlanModalOpen, setIsClearPlanModalOpen] = useState(false);
+  // Modals
   const [isRestartOnboardingModalOpen, setIsRestartOnboardingModalOpen] = useState(false);
-  const [isResetDemoModalOpen, setIsResetDemoModalOpen] = useState(false);
-
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-  // Load existing style from server
+  const isOwner = user?.permission === 'couple';
+
+  // Load voice settings from localStorage
+  useEffect(() => {
+    try {
+      const savedSpeaker = localStorage.getItem('mih_voice_speaker');
+      if (savedSpeaker !== null) {
+        setVoiceSpeakerEnabled(savedSpeaker === 'true');
+      }
+    } catch {}
+  }, []);
+
+  const handleToggleVoiceSpeaker = () => {
+    const nextVal = !voiceSpeakerEnabled;
+    setVoiceSpeakerEnabled(nextVal);
+    try {
+      localStorage.setItem('mih_voice_speaker', String(nextVal));
+    } catch {}
+    setToast({
+      message: nextVal ? 'Spoken audio replies enabled' : 'Spoken audio replies muted',
+      type: 'info',
+    });
+  };
+
+  // Load existing style and home profile from server
   useEffect(() => {
     if (!user || !user.homeId) return;
 
@@ -56,9 +89,23 @@ export default function SettingsPage() {
         }
       })
       .catch((e) => console.error('Failed to load settings:', e));
+
+    fetch(`/api/homes/${user.homeId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.home) {
+          setHomeDetails({
+            coupleNames: data.home.coupleNames || 'Our Celebration',
+            eventType: data.home.eventType || 'wedding',
+            date: data.home.profile?.date,
+            city: data.home.profile?.city,
+          });
+        }
+      })
+      .catch((e) => console.error('Failed to load home details:', e));
   }, [user]);
 
-  // Handle Maya style change (Server permission check: couple only)
+  // Handle Maya style change (Owner only)
   const handleStyleChange = async (pref: 'gentle' | 'balanced' | 'straight-to-the-point') => {
     setHonestyPreference(pref);
     if (!user || !user.homeId) return;
@@ -72,13 +119,13 @@ export default function SettingsPage() {
           'x-home-id': user.homeId,
         },
         body: JSON.stringify({
-          action: 'update_style',
+          action: 'update_communication',
           honestyPreference: pref,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        setToast({ message: "Maya's communication style updated!", type: 'success' });
+        setToast({ message: "Maya's advice style updated!", type: 'success' });
       } else {
         setToast({ message: data.error || 'Could not update style', type: 'error' });
       }
@@ -87,84 +134,57 @@ export default function SettingsPage() {
     }
   };
 
-  // Confirm and Execute: Clear Plan
-  const handleConfirmClearPlan = async () => {
-    setIsActionLoading(true);
+  // Update user display name
+  const handleSaveName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!displayName.trim() || isUpdatingName) return;
+
+    setIsUpdatingName(true);
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-member-uid': user?.uid || '',
-          'x-home-id': user?.homeId || '',
-        },
-        body: JSON.stringify({ action: 'clear_plan' }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_profile',
+          name: displayName.trim(),
+        }),
       });
       const data = await res.json();
       if (data.success) {
-        setToast({ message: 'All wedding plan tabs cleared', type: 'success' });
-        setIsClearPlanModalOpen(false);
+        setToast({ message: 'Name updated successfully', type: 'success' });
       } else {
-        setToast({ message: data.error || 'Could not clear plan', type: 'error' });
+        setToast({ message: data.error || 'Failed to update name', type: 'error' });
       }
     } catch {
-      setToast({ message: 'Network error clearing plan', type: 'error' });
+      setToast({ message: 'Network error updating name', type: 'error' });
     } finally {
-      setIsActionLoading(false);
+      setIsUpdatingName(false);
     }
   };
 
-  // Confirm and Execute: Restart Onboarding
+  // Restart Onboarding in Chat
   const handleConfirmRestartOnboarding = async () => {
     setIsActionLoading(true);
     try {
-      const res = await fetch('/api/settings', {
+      const res = await fetch('/api/maya/reset', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-member-uid': user?.uid || '',
           'x-home-id': user?.homeId || '',
         },
-        body: JSON.stringify({ action: 'restart_onboarding' }),
+        body: JSON.stringify({ homeId: user?.homeId, uid: user?.uid }),
       });
       const data = await res.json();
       if (data.success) {
-        setToast({ message: 'Chat onboarding restarted with Maya', type: 'success' });
+        setToast({ message: 'Conversation restarted with Maya', type: 'success' });
         setIsRestartOnboardingModalOpen(false);
         router.push('/chat');
       } else {
         setToast({ message: data.error || 'Could not restart chat', type: 'error' });
       }
     } catch {
-      setToast({ message: 'Network error restarting onboarding', type: 'error' });
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-  // Confirm and Execute: Reset All Demo Data
-  const handleConfirmResetDemoData = async () => {
-    setIsActionLoading(true);
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-member-uid': user?.uid || '',
-          'x-home-id': user?.homeId || '',
-        },
-        body: JSON.stringify({ action: 'reset_demo_data' }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setToast({ message: 'All demo data reset to default Pune wedding fixtures', type: 'success' });
-        setIsResetDemoModalOpen(false);
-        router.push('/home');
-      } else {
-        setToast({ message: data.error || 'Could not reset demo fixtures', type: 'error' });
-      }
-    } catch {
-      setToast({ message: 'Network error resetting fixtures', type: 'error' });
+      setToast({ message: 'Network error restarting conversation', type: 'error' });
     } finally {
       setIsActionLoading(false);
     }
@@ -185,42 +205,12 @@ export default function SettingsPage() {
         />
       )}
 
-      {/* Confirmation Modal 1: Clear Plan */}
-      <Modal
-        isOpen={isClearPlanModalOpen}
-        onClose={() => setIsClearPlanModalOpen(false)}
-        title="Clear Wedding Plan?"
-        description="This will clear all 6 generated plan tabs (budget, timeline, checklist, palette, decor, and attire). Your wedding profile remains intact."
-        icon={<Trash2 className="w-5 h-5 text-[#94512F]" strokeWidth={1.5} />}
-        footer={
-          <div className="flex items-center justify-end gap-3 w-full">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsClearPlanModalOpen(false)}
-              disabled={isActionLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleConfirmClearPlan}
-              disabled={isActionLoading}
-              className="!bg-[#94512F] !text-white"
-            >
-              {isActionLoading ? 'Clearing...' : 'Clear Plan'}
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Confirmation Modal 2: Restart Onboarding */}
+      {/* Confirmation Modal: Restart Onboarding */}
       <Modal
         isOpen={isRestartOnboardingModalOpen}
         onClose={() => setIsRestartOnboardingModalOpen(false)}
-        title="Restart Onboarding with Maya?"
-        description="This will clear your conversation history in Chat and start over with Maya's opening welcome questions."
+        title="Start Fresh with Maya?"
+        description="This will clear your conversation history in Chat and start over with Maya's opening celebration questions."
         icon={<RotateCcw className="w-5 h-5 text-[#94512F]" strokeWidth={1.5} />}
         footer={
           <div className="flex items-center justify-end gap-3 w-full">
@@ -239,396 +229,304 @@ export default function SettingsPage() {
               disabled={isActionLoading}
               className="!bg-[#2A2521] !text-white"
             >
-              {isActionLoading ? 'Restarting...' : 'Restart Chat'}
+              {isActionLoading ? 'Restarting…' : 'Start Fresh'}
             </Button>
           </div>
         }
       />
 
-      {/* Confirmation Modal 3: Reset All Demo Data */}
-      <Modal
-        isOpen={isResetDemoModalOpen}
-        onClose={() => setIsResetDemoModalOpen(false)}
-        title="Reset All Demo Data?"
-        description="This will reset all wedding state back to the canonical Aarav & Diya Pune wedding fixtures (300 guests, ₹8 Lakh budget, sample family members and ideas)."
-        icon={<AlertCircle className="w-5 h-5 text-[#94512F]" strokeWidth={1.5} />}
-        footer={
-          <div className="flex items-center justify-end gap-3 w-full">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsResetDemoModalOpen(false)}
-              disabled={isActionLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleConfirmResetDemoData}
-              disabled={isActionLoading}
-              className="!bg-[#94512F] !text-white"
-            >
-              {isActionLoading ? 'Resetting...' : 'Reset All Data'}
-            </Button>
-          </div>
-        }
-      />
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 font-sans">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10">
         {/* Header */}
-        <div className="pb-6 border-b border-[#E4DED6] flex items-center justify-between">
-          <div>
-            <h1 className="font-serif text-3xl sm:text-4xl font-normal text-[#2A2521] tracking-tight">
-              Settings & Preferences
-            </h1>
-            <p className="text-xs sm:text-sm text-[#6B645E] mt-1 font-sans">
-              Manage your profile, Maya communication style, and celebration settings.
-            </p>
-          </div>
+        <div className="pb-6 border-b border-[#E4DED6]">
+          <span className="font-micro text-[11px] text-[#94512F] uppercase tracking-[0.2em] font-medium block mb-1">
+            PREFERENCES & ACCOUNT
+          </span>
+          <h1 className="font-serif text-3xl sm:text-4xl font-normal text-[#2A2521]">
+            Settings
+          </h1>
+          <p className="text-xs sm:text-sm text-[#6B645E] mt-1 font-sans">
+            Manage your personal profile, preferred language, voice assistant, and celebration parameters.
+          </p>
         </div>
 
-        {/* Section 1: Profile */}
-        <Card className="border border-[#E4DED6] bg-white p-6 space-y-4">
-          <CardHeader className="p-0 pb-3 border-b border-[#E4DED6]">
-            <CardTitle className="text-lg">
-              1. Profile Information
-            </CardTitle>
-            <CardDescription className="text-xs text-[#6B645E]">
-              Your identity in this wedding Home.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 pt-2 space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 border border-[#E4DED6] bg-[#F1EDE8] text-[#2A2521] font-mono text-sm font-medium flex items-center justify-center shrink-0">
-                {user?.name.slice(0, 2).toUpperCase() || 'MIH'}
-              </div>
-              <div className="space-y-1">
-                <p className="font-serif text-lg font-medium text-[#2A2521]">{user?.name || 'Aarav & Diya'}</p>
-                <div className="flex items-center gap-2 text-xs text-[#6B645E]">
-                  <span className="capitalize">{user?.relationship || 'Couple'}</span>
-                  <span>•</span>
-                  <Badge variant="outline" size="sm" className="font-micro uppercase">
-                    {user?.permission.toUpperCase() || 'COUPLE'}
-                  </Badge>
-                </div>
-                {user?.email && (
-                  <p className="text-xs text-[#6B645E] font-mono">{user.email}</p>
-                )}
-              </div>
+        {/* 1. Profile & Language Card */}
+        <Card className="border border-[#E4DED6] bg-white p-6 sm:p-8 space-y-6">
+          <CardHeader className="p-0 pb-4 border-b border-[#E4DED6]">
+            <div className="flex items-center gap-2.5">
+              <User className="w-4 h-4 text-[#94512F]" />
+              <CardTitle className="text-xl">Profile & Language</CardTitle>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Section 2: Language */}
-        <Card className="border border-[#E4DED6] bg-white p-6 space-y-4">
-          <CardHeader className="p-0 pb-3 border-b border-[#E4DED6]">
-            <CardTitle className="text-lg">
-              2. Preferred Language
-            </CardTitle>
             <CardDescription className="text-xs text-[#6B645E]">
-              Maya replies and greets you in this language.
+              Your identity in the family council and regional dialect for Maya&apos;s responses.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0 pt-2">
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              {SUPPORTED_LANGUAGES.map((lang) => {
-                const isSelected = user?.preferredLanguage === lang.code;
-                return (
-                  <button
-                    key={lang.code}
-                    type="button"
-                    onClick={() => updateUserLanguage(lang.code)}
-                    className={`p-3.5 border text-center transition-all min-h-[48px] focus-visible:ring-1 focus-visible:ring-[#94512F] outline-hidden cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#2A2521] text-white border-[#2A2521]'
-                        : 'bg-white border-[#E4DED6] text-[#2A2521] hover:bg-[#F1EDE8]'
-                    }`}
+
+          <CardContent className="p-0 space-y-6">
+            <form onSubmit={handleSaveName} className="space-y-4 max-w-md">
+              <div className="space-y-1.5">
+                <label htmlFor="settings-name" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]">
+                  Display Name
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="settings-name"
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="flex-1 px-3.5 py-2.5 border border-[#E4DED6] bg-[#FCFBF8] text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isUpdatingName || !displayName.trim() || displayName === user?.name}
+                    className="bg-[#2A2521] text-white hover:bg-black text-xs shrink-0 min-h-[44px]"
                   >
-                    <span className="block text-sm font-medium leading-tight">
-                      {lang.nativeLabel}
-                    </span>
-                    <span
-                      className={`font-micro text-[10px] block mt-1 uppercase tracking-wider ${
-                        isSelected ? 'text-white/70' : 'text-[#6B645E]'
+                    {isUpdatingName ? 'Saving…' : 'Save'}
+                  </Button>
+                </div>
+              </div>
+            </form>
+
+            <div className="space-y-3 pt-4 border-t border-[#E4DED6]">
+              <div className="flex items-center gap-2">
+                <Globe className="w-3.5 h-3.5 text-[#94512F]" />
+                <span className="font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]">
+                  Preferred Language & Native Dialect
+                </span>
+              </div>
+              <p className="text-xs text-[#6B645E]">
+                Maya understands and replies in your choice of language with culturally nuanced advice.
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                {SUPPORTED_LANGUAGES.map((lang) => {
+                  const isSelected = (user?.preferredLanguage || 'en') === lang.code;
+                  return (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => {
+                        updateUserLanguage(lang.code);
+                        setToast({
+                          message: `Language updated to ${lang.name} (${lang.nativeName})`,
+                          type: 'success',
+                        });
+                      }}
+                      className={`p-3 border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-[#2A2521] bg-[#F1EDE8] shadow-xs'
+                          : 'border-[#E4DED6] bg-white hover:border-[#2A2521]'
                       }`}
                     >
-                      {lang.label}
-                    </span>
-                  </button>
-                );
-              })}
+                      <div className="font-serif text-sm font-medium text-[#2A2521]">
+                        {lang.name}
+                      </div>
+                      <div className="text-xs text-[#6B645E] mt-0.5">
+                        {lang.nativeName}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Section 3: Voice */}
-        <Card className="border border-[#E4DED6] bg-white p-6 space-y-4">
-          <CardHeader className="p-0 pb-3 border-b border-[#E4DED6]">
-            <CardTitle className="text-lg">
-              3. Voice & Speech Controls
-            </CardTitle>
+        {/* 2. Celebration Details Card */}
+        <Card className="border border-[#E4DED6] bg-white p-6 sm:p-8 space-y-6">
+          <CardHeader className="p-0 pb-4 border-b border-[#E4DED6]">
+            <div className="flex items-center gap-2.5">
+              <Calendar className="w-4 h-4 text-[#94512F]" />
+              <CardTitle className="text-xl">Celebration Details</CardTitle>
+            </div>
             <CardDescription className="text-xs text-[#6B645E]">
-              Controls for Maya text-to-speech replies and speech-to-text mic input.
+              Core attributes of your celebration Home.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0 pt-2 space-y-3">
+
+          <CardContent className="p-0 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="p-4 bg-[#FCFBF8] border border-[#E4DED6] space-y-1">
+              <span className="font-micro text-[10px] text-[#6B645E] uppercase tracking-wider block">
+                Occasion Title
+              </span>
+              <p className="font-serif text-base text-[#2A2521] font-medium">
+                {homeDetails?.coupleNames || 'Our Celebration'}
+              </p>
+            </div>
+
+            <div className="p-4 bg-[#FCFBF8] border border-[#E4DED6] space-y-1">
+              <span className="font-micro text-[10px] text-[#6B645E] uppercase tracking-wider block">
+                Celebration Type
+              </span>
+              <p className="font-serif text-base text-[#2A2521] font-medium capitalize">
+                {homeDetails?.eventType || 'Wedding'}
+              </p>
+            </div>
+
+            <div className="p-4 bg-[#FCFBF8] border border-[#E4DED6] space-y-1">
+              <span className="font-micro text-[10px] text-[#6B645E] uppercase tracking-wider block">
+                Target Date
+              </span>
+              <p className="font-sans text-sm text-[#2A2521]">
+                {homeDetails?.date || 'To be determined with Maya'}
+              </p>
+            </div>
+
+            <div className="p-4 bg-[#FCFBF8] border border-[#E4DED6] space-y-1">
+              <span className="font-micro text-[10px] text-[#6B645E] uppercase tracking-wider block">
+                City / Location
+              </span>
+              <p className="font-sans text-sm text-[#2A2521]">
+                {homeDetails?.city || 'To be confirmed'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 3. Voice & Maya Persona Card */}
+        <Card className="border border-[#E4DED6] bg-white p-6 sm:p-8 space-y-6">
+          <CardHeader className="p-0 pb-4 border-b border-[#E4DED6]">
+            <div className="flex items-center gap-2.5">
+              <Volume2 className="w-4 h-4 text-[#94512F]" />
+              <CardTitle className="text-xl">Voice & Maya Persona</CardTitle>
+            </div>
+            <CardDescription className="text-xs text-[#6B645E]">
+              Customize voice assistant playback and Maya&apos;s consultative candour.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="p-0 space-y-6">
+            {/* Spoken audio toggle */}
             <div className="flex items-center justify-between p-4 bg-[#FCFBF8] border border-[#E4DED6]">
-              <div>
-                <p className="text-xs font-medium text-[#2A2521]">Speak Maya's replies aloud</p>
-                <p className="text-xs text-[#6B645E] mt-0.5">
-                  Reads Maya's consultative answers using speech synthesis
+              <div className="space-y-0.5">
+                <span className="text-sm font-medium text-[#2A2521] block">
+                  Read Maya&apos;s responses aloud
+                </span>
+                <p className="text-xs text-[#6B645E]">
+                  Uses browser speech synthesis in your chosen dialect.
                 </p>
               </div>
-              <input
-                type="checkbox"
-                checked={voiceSpeakerEnabled}
-                onChange={(e) => setVoiceSpeakerEnabled(e.target.checked)}
-                className="w-4 h-4 accent-[#2A2521] cursor-pointer"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-[#FCFBF8] border border-[#E4DED6]">
-              <div>
-                <p className="text-xs font-medium text-[#2A2521]">Enable microphone voice input</p>
-                <p className="text-xs text-[#6B645E] mt-0.5">
-                  Show mic chip in Chat for speaking your wedding requests
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={voiceMicEnabled}
-                onChange={(e) => setVoiceMicEnabled(e.target.checked)}
-                className="w-4 h-4 accent-[#2A2521] cursor-pointer"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Section 4: Maya's Style */}
-        <Card className="border border-[#E4DED6] bg-white p-6 space-y-4">
-          <CardHeader className="p-0 pb-3 border-b border-[#E4DED6]">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
-                4. Maya's Communication Style
-              </CardTitle>
-              {user?.permission !== 'couple' && (
-                <Badge variant="outline" size="sm" className="font-micro">
-                  COUPLE ONLY
-                </Badge>
-              )}
-            </div>
-            <CardDescription className="text-xs text-[#6B645E]">
-              How Maya delivers reality checks when budget or guest counts do not fit.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                {
-                  key: 'gentle',
-                  title: 'Gentle',
-                  desc: 'Warm, empathetic, soft recommendations with encouraging guidance.',
-                },
-                {
-                  key: 'balanced',
-                  title: 'Balanced',
-                  desc: 'Thoughtful and supportive, with realistic trade-offs clearly highlighted.',
-                },
-                {
-                  key: 'straight-to-the-point',
-                  title: 'Direct',
-                  desc: 'Crisp and numbers-first with immediate alternative options.',
-                },
-              ].map((style) => {
-                const isSelected = honestyPreference === style.key;
-                const isDisabled = user?.permission !== 'couple';
-                return (
-                  <button
-                    key={style.key}
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => handleStyleChange(style.key as any)}
-                    className={`p-4 border text-left transition-all min-h-[96px] focus-visible:ring-1 focus-visible:ring-[#94512F] outline-hidden ${
-                      isSelected
-                        ? 'bg-[#F1EDE8] border-[#2A2521] ring-1 ring-[#2A2521]'
-                        : 'bg-white border-[#E4DED6] hover:bg-[#FCFBF8]'
-                    } ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-serif text-base font-medium text-[#2A2521]">
-                        {style.title}
-                      </span>
-                      {isSelected && (
-                        <span className="font-micro text-[10px] text-[#94512F] uppercase tracking-wider font-semibold">
-                          Active
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-[#6B645E] leading-relaxed">
-                      {style.desc}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Section 5: Privacy */}
-        <Card className="border border-[#E4DED6] bg-white p-6 space-y-4">
-          <CardHeader className="p-0 pb-3 border-b border-[#E4DED6]">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
-                5. Privacy & Budget Access
-              </CardTitle>
-              {user?.permission !== 'couple' && (
-                <Badge variant="outline" size="sm" className="font-micro">
-                  COUPLE ONLY
-                </Badge>
-              )}
-            </div>
-            <CardDescription className="text-xs text-[#6B645E]">
-              Determine who in your family circle can inspect exact INR budget numbers.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 pt-2">
-            <div className="flex items-center justify-between p-4 bg-[#FCFBF8] border border-[#E4DED6]">
-              <div>
-                <p className="text-xs font-medium text-[#2A2521]">
-                  Strict Couple-Only Budget View
-                </p>
-                <p className="text-xs text-[#6B645E] mt-0.5">
-                  When active, only the couple sees the Private Budget. Other members see only cost tiers.
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                disabled={user?.permission !== 'couple'}
-                checked={budgetPrivacyCoupleOnly}
-                onChange={(e) => setBudgetPrivacyCoupleOnly(e.target.checked)}
-                className="w-4 h-4 accent-[#2A2521] cursor-pointer"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Section 6: Notifications */}
-        <Card className="border border-[#E4DED6] bg-white p-6 space-y-4">
-          <CardHeader className="p-0 pb-3 border-b border-[#E4DED6]">
-            <CardTitle className="text-lg">
-              6. Notifications
-            </CardTitle>
-            <CardDescription className="text-xs text-[#6B645E]">
-              Stay informed of new family suggestions and vote deadlines.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 pt-2 space-y-3">
-            <div className="flex items-center justify-between p-4 bg-[#FCFBF8] border border-[#E4DED6]">
-              <div>
-                <p className="text-xs font-medium text-[#2A2521]">Family ideas & comments</p>
-                <p className="text-xs text-[#6B645E] mt-0.5">Alerts when mother, brother, or friends post ideas</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifIdeas}
-                onChange={(e) => setNotifIdeas(e.target.checked)}
-                className="w-4 h-4 accent-[#2A2521] cursor-pointer"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-[#FCFBF8] border border-[#E4DED6]">
-              <div>
-                <p className="text-xs font-medium text-[#2A2521]">Voting deadlines & reminders</p>
-                <p className="text-xs text-[#6B645E] mt-0.5">Alerts when a majority vote opens or closes</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifVotes}
-                onChange={(e) => setNotifVotes(e.target.checked)}
-                className="w-4 h-4 accent-[#2A2521] cursor-pointer"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-[#FCFBF8] border border-[#E4DED6]">
-              <div>
-                <p className="text-xs font-medium text-[#2A2521]">Maya planning tips & milestone alerts</p>
-                <p className="text-xs text-[#6B645E] mt-0.5">City-specific vendor reminders for upcoming dates</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifMaya}
-                onChange={(e) => setNotifMaya(e.target.checked)}
-                className="w-4 h-4 accent-[#2A2521] cursor-pointer"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Section 7: Data Management */}
-        <Card className="border border-[#E4DED6] bg-white p-6 space-y-4">
-          <CardHeader className="p-0 pb-3 border-b border-[#E4DED6]">
-            <CardTitle className="text-lg">
-              7. Data Management
-            </CardTitle>
-            <CardDescription className="text-xs text-[#6B645E]">
-              Clear plan tabs or reset onboarding conversation. All destructive actions require confirmation.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 pt-2 space-y-3">
-            <div className="flex items-center justify-between p-4 border border-[#E4DED6] bg-white flex-wrap gap-3">
-              <div>
-                <p className="text-xs font-medium text-[#2A2521]">Clear Celebration Plan</p>
-                <p className="text-xs text-[#6B645E] mt-0.5">Resets all 6 generated tabs to blank</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsClearPlanModalOpen(true)}
-                className="text-xs text-[#94512F] border-[#E4DED6] hover:bg-[#F1EDE8]"
+              <button
+                type="button"
+                onClick={handleToggleVoiceSpeaker}
+                className={`px-3 py-1.5 font-micro uppercase text-xs tracking-wider border cursor-pointer transition-colors ${
+                  voiceSpeakerEnabled
+                    ? 'bg-[#2A2521] text-white border-[#2A2521]'
+                    : 'bg-white text-[#6B645E] border-[#E4DED6]'
+                }`}
               >
-                Clear Plan
-              </Button>
+                {voiceSpeakerEnabled ? 'Enabled' : 'Muted'}
+              </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 border border-[#E4DED6] bg-white flex-wrap gap-3">
+            {/* Maya Advice Style (Owner Only) */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em] block">
+                    Maya&apos;s Advice Style
+                  </span>
+                  <p className="text-xs text-[#6B645E] mt-0.5">
+                    How direct Maya should be when budgets stretch or schedules compress.
+                  </p>
+                </div>
+                {!isOwner && (
+                  <Badge variant="outline" size="sm" className="font-micro text-[10px]">
+                    Owner Controlled
+                  </Badge>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                {(['gentle', 'balanced', 'straight-to-the-point'] as const).map((style) => {
+                  const isSelected = honestyPreference === style;
+                  return (
+                    <button
+                      key={style}
+                      type="button"
+                      disabled={!isOwner}
+                      onClick={() => handleStyleChange(style)}
+                      className={`p-3.5 border text-left transition-all ${
+                        !isOwner
+                          ? 'opacity-60 cursor-not-allowed'
+                          : 'cursor-pointer hover:border-[#2A2521]'
+                      } ${
+                        isSelected
+                          ? 'border-[#2A2521] bg-[#F1EDE8] shadow-xs'
+                          : 'border-[#E4DED6] bg-white'
+                      }`}
+                    >
+                      <div className="font-serif text-sm font-medium text-[#2A2521] capitalize flex items-center justify-between">
+                        <span>{style.replace(/-/g, ' ')}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-[#94512F]" />}
+                      </div>
+                      <p className="text-[11px] text-[#6B645E] mt-1 leading-relaxed">
+                        {style === 'gentle' && 'Subtle recommendations and polite nudges.'}
+                        {style === 'balanced' && 'Honest numbers with tactful alternatives.'}
+                        {style === 'straight-to-the-point' && 'Direct reality checks and zero fluff.'}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 4. Privacy, Data & Sign Out Card */}
+        <Card className="border border-[#E4DED6] bg-white p-6 sm:p-8 space-y-6">
+          <CardHeader className="p-0 pb-4 border-b border-[#E4DED6]">
+            <div className="flex items-center gap-2.5">
+              <Lock className="w-4 h-4 text-[#94512F]" />
+              <CardTitle className="text-xl">Privacy, Reset & Session</CardTitle>
+            </div>
+            <CardDescription className="text-xs text-[#6B645E]">
+              Account access, conversation reset, and confidential budget controls.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="p-0 space-y-4">
+            <div className="p-4 bg-[#FCFBF8] border border-[#E4DED6] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <p className="text-xs font-medium text-[#2A2521]">Restart Onboarding Chat</p>
-                <p className="text-xs text-[#6B645E] mt-0.5">Clears chat messages and resets onboarding conversation</p>
+                <span className="text-sm font-medium text-[#2A2521] block">
+                  Restart Conversation with Maya
+                </span>
+                <p className="text-xs text-[#6B645E] mt-0.5">
+                  Resets the chat salon history and begins afresh with Maya&apos;s welcome.
+                </p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsRestartOnboardingModalOpen(true)}
-                className="text-xs text-[#2A2521] border-[#E4DED6] hover:bg-[#F1EDE8]"
+                className="border-[#E4DED6] text-[#2A2521] hover:bg-[#F1EDE8] text-xs shrink-0"
               >
-                Restart Chat
+                <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                <span>Start Fresh</span>
+              </Button>
+            </div>
+
+            <div className="p-4 bg-[#FCFBF8] border border-[#E4DED6] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-sm font-medium text-[#2A2521] block">
+                  Sign Out of Session
+                </span>
+                <p className="text-xs text-[#6B645E] mt-0.5">
+                  Signed in as <strong className="text-[#2A2521] font-normal">{user?.email || user?.name || 'Guest'}</strong>
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                className="border-[#94512F] text-[#94512F] hover:bg-[#F1EDE8] text-xs shrink-0"
+              >
+                <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                <span>Sign Out</span>
               </Button>
             </div>
           </CardContent>
         </Card>
-
-        {/* Section 8: About & Sign Out */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#E4DED6]">
-          <div>
-            <p className="font-serif text-base font-medium text-[#2A2521]">
-              Made in Heaven • Version 1.0
-            </p>
-            <p className="text-xs text-[#6B645E] mt-0.5">
-              Consultative AI wedding manager tailored for Indian celebrations.
-            </p>
-          </div>
-
-          <Button
-            variant="outline"
-            size="md"
-            onClick={handleSignOut}
-            className="w-full sm:w-auto text-xs border-[#E4DED6] text-[#2A2521] hover:bg-[#F1EDE8]"
-          >
-            <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
-            <span>Sign Out</span>
-          </Button>
-        </div>
       </div>
     </AppShell>
   );
