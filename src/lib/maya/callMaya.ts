@@ -2,7 +2,6 @@ import 'server-only';
 import fs from 'fs/promises';
 import path from 'path';
 import { GoogleGenAI } from '@google/genai';
-import { z } from 'zod';
 import { MayaResponseEnvelopeSchema, MayaResponseEnvelope } from './schemas';
 import { computeMonthsUntilWedding, getOnboardingStatus } from '@/lib/utils/format';
 import {
@@ -79,71 +78,46 @@ function handleMockResponse(options: CallMayaOptions): MayaResponseEnvelope {
   return MOCK_CHAT_ENVELOPES.style_selected;
 }
 
-// In-memory cache for prompt templates read at runtime
 let cachedSystemPrompt: string | null = null;
 let cachedSynthesisPrompt: string | null = null;
-let cachedEnvelopePrompt: string | null = null;
-let cachedStyleRulesPrompt: string | null = null;
 
-/**
- * Loads the Maya system prompt from prompts/maya_system_prompt.txt at runtime,
- * appending Part C envelope instructions from prompts/maya_envelope.txt and
- * style rules from prompts/maya_style_rules.txt.
- */
-export async function loadSystemPrompt(includeSynthesis: boolean = false): Promise<string> {
+export async function loadSystemPrompt(isGroupSynthesis = false): Promise<string> {
+  if (isGroupSynthesis && cachedSynthesisPrompt) {
+    return cachedSynthesisPrompt;
+  }
+  if (!isGroupSynthesis && cachedSystemPrompt) {
+    return cachedSystemPrompt;
+  }
+
   const promptsDir = path.join(process.cwd(), 'prompts');
 
-  if (!cachedSystemPrompt) {
-    const systemPromptPath = path.join(promptsDir, 'maya_system_prompt.txt');
+  if (isGroupSynthesis) {
     try {
-      cachedSystemPrompt = await fs.readFile(systemPromptPath, 'utf-8');
-    } catch (err) {
-      throw new Error(`Failed to load system prompt from ${systemPromptPath}: ${err}`);
+      const synthesisPath = path.join(promptsDir, 'maya_group_synthesis.txt');
+      cachedSynthesisPrompt = await fs.readFile(synthesisPath, 'utf-8');
+      return cachedSynthesisPrompt;
+    } catch {
+      console.warn('Could not read maya_group_synthesis.txt, falling back to default system prompt.');
     }
   }
 
-  if (!cachedEnvelopePrompt) {
-    const envelopePromptPath = path.join(promptsDir, 'maya_envelope.txt');
-    try {
-      cachedEnvelopePrompt = await fs.readFile(envelopePromptPath, 'utf-8');
-    } catch (err) {
-      console.warn(`Could not load envelope prompt from ${envelopePromptPath}: ${err}`);
-      cachedEnvelopePrompt = '';
-    }
-  }
-
-  if (!cachedStyleRulesPrompt) {
+  try {
+    const mainPromptPath = path.join(promptsDir, 'maya_system_prompt.txt');
     const styleRulesPath = path.join(promptsDir, 'maya_style_rules.txt');
-    try {
-      cachedStyleRulesPrompt = await fs.readFile(styleRulesPath, 'utf-8');
-    } catch (err) {
-      console.warn(`Could not load style rules prompt from ${styleRulesPath}: ${err}`);
-      cachedStyleRulesPrompt = '';
-    }
+    const envelopePath = path.join(promptsDir, 'maya_envelope.txt');
+
+    const [mainPrompt, styleRules, envelope] = await Promise.all([
+      fs.readFile(mainPromptPath, 'utf-8'),
+      fs.readFile(styleRulesPath, 'utf-8'),
+      fs.readFile(envelopePath, 'utf-8'),
+    ]);
+
+    cachedSystemPrompt = `${mainPrompt}\n\n=== MAYA STYLE RULES ===\n${styleRules}\n\n=== OUTPUT ENVELOPE FORMAT ===\n${envelope}`;
+    return cachedSystemPrompt;
+  } catch (err) {
+    console.error('Failed to load system prompts from disk:', err);
+    return 'You are Maya, celebration planner for Made in Heaven. Always respond in valid JSON matching the Maya response envelope.';
   }
-
-  // System prompt followed by envelope, then style rules
-  let fullPrompt = cachedEnvelopePrompt
-    ? `${cachedSystemPrompt}\n\n---\n\n${cachedEnvelopePrompt}`
-    : cachedSystemPrompt;
-
-  if (cachedStyleRulesPrompt) {
-    fullPrompt = `${fullPrompt}\n\n---\n\n${cachedStyleRulesPrompt}`;
-  }
-
-  if (includeSynthesis) {
-    if (!cachedSynthesisPrompt) {
-      const synthesisPromptPath = path.join(promptsDir, 'maya_group_synthesis.txt');
-      try {
-        cachedSynthesisPrompt = await fs.readFile(synthesisPromptPath, 'utf-8');
-      } catch (err) {
-        throw new Error(`Failed to load group synthesis prompt from ${synthesisPromptPath}: ${err}`);
-      }
-    }
-    fullPrompt = `${fullPrompt}\n\n---\n\n${cachedSynthesisPrompt}`;
-  }
-
-  return fullPrompt;
 }
 
 export interface SpeakerContext {
@@ -177,12 +151,9 @@ export interface CallMayaOptions {
   onboardingComplete?: boolean;
   mustAskCommunicationStyle?: boolean;
   onboardingGuidance?: string;
+  isPlanGeneration?: boolean;
 }
 
-/**
- * Checks whether quick_replies array offers the three honesty communication styles:
- * gentle, balanced, straight to the point.
- */
 export function offersThreeCommunicationStyles(quickReplies: string[] | undefined | null): boolean {
   if (!quickReplies || !Array.isArray(quickReplies)) return false;
   const lower = quickReplies.map((r) => String(r).toLowerCase().trim());
@@ -192,17 +163,11 @@ export function offersThreeCommunicationStyles(quickReplies: string[] | undefine
   return hasGentle && hasBalanced && hasStraight;
 }
 
-/**
- * Counts words in a string.
- */
 function countWords(text: string): number {
   if (!text || typeof text !== 'string') return 0;
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-/**
- * Logs reply word count in non-production environments.
- */
 function logReplyWordCount(reply: string) {
   if (process.env.NODE_ENV !== 'production') {
     const count = countWords(reply);
@@ -210,10 +175,6 @@ function logReplyWordCount(reply: string) {
   }
 }
 
-/**
- * Sanitize context by removing budget details if speaker cannot see budget
- * (Section 5 Step 3 of build brief: do not rely on the prompt alone).
- */
 function sanitizeContextForSpeaker(options: CallMayaOptions) {
   const profileCopy = options.eventProfile ? JSON.parse(JSON.stringify(options.eventProfile)) : {};
   let budgetData = options.budget ? JSON.parse(JSON.stringify(options.budget)) : null;
@@ -231,12 +192,26 @@ function sanitizeContextForSpeaker(options: CallMayaOptions) {
   };
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function cleanJsonString(str: string): string {
+  const trimmed = str.trim();
+  if (trimmed.startsWith('```')) {
+    return trimmed.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```$/, '').trim();
+  }
+  return trimmed;
+}
+
 /**
- * Server-only helper that executes a Maya chat turn using Gemini API.
- * Validates output with Zod and retries once on invalid JSON format.
+ * Server-only helper executing a Maya chat turn with resilient retries,
+ * fallback model support, and low thinking budget for low-latency responses.
  */
 export async function callMaya(options: CallMayaOptions): Promise<MayaResponseEnvelope> {
-  // 1. Mock Mode: Return realistic canned envelopes without calling Gemini SDK
+  const startTime = Date.now();
+
+  // 1. Mock Mode
   if (process.env.MAYA_MOCK === 'true') {
     const mockEnvelope = handleMockResponse(options);
     logReplyWordCount(mockEnvelope.reply);
@@ -244,23 +219,17 @@ export async function callMaya(options: CallMayaOptions): Promise<MayaResponseEn
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  const modelName = process.env.GEMINI_MODEL;
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
 
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not defined in environment variables. Please check your .env configuration.');
   }
 
-  if (!modelName || modelName.includes('your_model_name')) {
-    throw new Error('GEMINI_MODEL is not properly configured. Please set a valid Gemini model in your .env (e.g. gemini-2.5-flash).');
-  }
-
   const systemInstruction = await loadSystemPrompt(Boolean(options.groupSynthesis));
   const ai = new GoogleGenAI({ apiKey });
 
-  // Sanitize context based on speaker permission
   const { profile, budget } = sanitizeContextForSpeaker(options);
-
-  // Compute context additions: TODAY, MONTHS_UNTIL_WEDDING, and ONBOARDING_COMPLETE
   const today = options.today || new Date().toISOString().split('T')[0];
   const monthsUntilWedding = options.monthsUntilWedding !== undefined
     ? options.monthsUntilWedding
@@ -269,7 +238,6 @@ export async function callMaya(options: CallMayaOptions): Promise<MayaResponseEn
     ? options.onboardingComplete
     : getOnboardingStatus(profile as any, (options.budget || budget) as any).isFullyComplete;
 
-  // Construct structured prompt inputs per Part A + style rules
   const promptContext = {
     TODAY: today,
     MONTHS_UNTIL_WEDDING: monthsUntilWedding,
@@ -295,180 +263,94 @@ export async function callMaya(options: CallMayaOptions): Promise<MayaResponseEn
   const eventType = profile?.eventType || 'wedding';
   const userContent = `Here is the current celebration context (Celebration Type: ${eventType}):\n${JSON.stringify(promptContext, null, 2)}\n\nRespond to the speaker's latest message in accordance with your celebration instructions. Return ONLY the JSON envelope.`;
 
-  // First attempt
-  let rawText = '';
-  try {
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents: userContent,
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-      },
-    });
+  // Configure thinking level: low/minimal for chat turns to guarantee fast responses <5s
+  const thinkingConfig = options.isPlanGeneration
+    ? { thinkingBudget: 512 }
+    : { thinkingBudget: 0 }; // 0 disables extra thinking delays for chat turns
 
-    rawText = response.text || '';
-    const parsedJson = JSON.parse(cleanJsonString(rawText));
-    const validated = MayaResponseEnvelopeSchema.parse(parsedJson);
+  const modelsToAttempt = [
+    { name: primaryModel, maxRetries: 2 }, // Up to 2 retries (3 attempts total) on primary
+    { name: fallbackModel, maxRetries: 0 }, // 1 attempt on fallback model
+  ];
 
-    // If MUST_ASK_COMMUNICATION_STYLE is true, check if quick_replies offer those three styles
-    if (options.mustAskCommunicationStyle && !offersThreeCommunicationStyles(validated.quick_replies)) {
-      console.warn('[Maya] MUST_ASK_COMMUNICATION_STYLE is true but quick_replies do not offer all 3 styles. Retrying once with correction...');
+  let totalAttempts = 0;
+  let lastError: any = null;
+
+  for (const modelPlan of modelsToAttempt) {
+    let retriesLeft = modelPlan.maxRetries;
+
+    while (retriesLeft >= 0) {
+      totalAttempts++;
+      // Guard: Keep total turn execution strictly under ~19 seconds
+      if (Date.now() - startTime > 19000) {
+        console.warn(`[Maya] Turn exceeded total deadline (19s). Aborting attempts.`);
+        break;
+      }
+
       try {
-        const retryResponse = await ai.models.generateContent({
-          model: modelName,
-          contents: [
-            { role: 'user', parts: [{ text: userContent }] },
-            { role: 'model', parts: [{ text: rawText }] },
-            {
-              role: 'user',
-              parts: [{
-                text: `Correction: MUST_ASK_COMMUNICATION_STYLE is true. You must ask how they prefer to hear about problems (e.g. gentle, balanced, straight to the point) before offering any other options, and your quick_replies MUST include all three styles: "Gentle", "Balanced", and "Straight to the point".
-Your previous quick_replies (${JSON.stringify(validated.quick_replies)}) did not offer these three styles.
-Please return ONLY the corrected JSON envelope asking this question and offering quick_replies: ["Gentle", "Balanced", "Straight to the point"].`
-              }],
-            },
-          ],
+        const response = await ai.models.generateContent({
+          model: modelPlan.name,
+          contents: userContent,
           config: {
             systemInstruction,
             responseMimeType: 'application/json',
+            thinkingConfig,
           },
         });
 
-        const retryRawText = retryResponse.text || '';
-        const retryParsedJson = JSON.parse(cleanJsonString(retryRawText));
-        const retryValidated = MayaResponseEnvelopeSchema.parse(retryParsedJson);
-        if (!offersThreeCommunicationStyles(retryValidated.quick_replies)) {
-          retryValidated.quick_replies = ['Gentle', 'Balanced', 'Straight to the point'];
+        const rawText = response.text || '';
+        const parsedJson = JSON.parse(cleanJsonString(rawText));
+        const validated = MayaResponseEnvelopeSchema.parse(parsedJson);
+
+        // Check communication style requirements
+        if (options.mustAskCommunicationStyle && !offersThreeCommunicationStyles(validated.quick_replies)) {
+          validated.quick_replies = ['Gentle', 'Balanced', 'Straight to the point'];
         }
-        logReplyWordCount(retryValidated.reply);
-        return retryValidated;
-      } catch (styleRetryErr) {
-        console.warn('Style correction retry failed, applying quick replies fallback:', styleRetryErr);
-        validated.quick_replies = ['Gentle', 'Balanced', 'Straight to the point'];
+
+        console.log(`[Maya] Success: Model=${modelPlan.name}, Attempts=${totalAttempts}, Duration=${Date.now() - startTime}ms`);
+        logReplyWordCount(validated.reply);
         return validated;
+      } catch (err: any) {
+        lastError = err;
+        const httpStatus = extractHttpStatusCode(err);
+        console.warn(`[Maya] Attempt ${totalAttempts} failed on ${modelPlan.name} with HTTP ${httpStatus || 'unknown'}: ${err?.message || err}`);
+
+        // Immediate unrecoverable errors (400 bad request, 401 unauth, 403 forbidden)
+        if (httpStatus && [400, 401, 403, 404].includes(httpStatus)) {
+          console.error(`[Maya] Non-retryable HTTP error ${httpStatus} received. Stopping.`);
+          break;
+        }
+
+        // Retry logic for 503 / 500 / network failure: short backoff with jitter
+        if (httpStatus === 503 || httpStatus === 500 || !httpStatus) {
+          if (retriesLeft > 0) {
+            const baseDelay = retriesLeft === 2 ? 800 : 1600;
+            const jitter = Math.floor(Math.random() * 300);
+            await sleep(baseDelay + jitter);
+          }
+        } else if (httpStatus === 429) {
+          // Rate limit: retry at most once with 1.2s delay
+          if (retriesLeft > 0) {
+            retriesLeft = 0; // only 1 retry on 429
+            await sleep(1200);
+          } else {
+            break;
+          }
+        }
+
+        retriesLeft--;
       }
     }
-
-    logReplyWordCount(validated.reply);
-    return validated;
-  } catch (firstError) {
-    const httpStatus = extractHttpStatusCode(firstError);
-
-    // Never retry on 429: return friendly message and clean envelope
-    if (httpStatus === 429) {
-      console.warn('[Maya] Rate limit (429) hit. Returning friendly message without retry.');
-      return {
-        reply: "Maya is catching her breath from high demand right now! Please take a quick moment and try again shortly.",
-        spoken_reply: options.mode === 'voice' ? "Maya is currently experiencing high demand. Please try again shortly." : null,
-        quick_replies: ["Try again in a moment", "View wedding plan"],
-        profile_updates: [],
-        needs_confirmation: [],
-        structured: { type: 'none', data: null },
-      };
-    }
-
-    // Never retry on 503, 401, 403, 404
-    if (httpStatus && [503, 401, 403, 404].includes(httpStatus)) {
-      console.warn(`[Maya] HTTP ${httpStatus} received. Returning friendly message without retry.`);
-      return {
-        reply: "I am having trouble connecting with the planning service right now. Please try again in just a moment.",
-        spoken_reply: options.mode === 'voice' ? "Trouble connecting right now. Please try again in a moment." : null,
-        quick_replies: ["Let's try again", "Show wedding plan"],
-        profile_updates: [],
-        needs_confirmation: [],
-        structured: { type: 'none', data: null },
-      };
-    }
-
-    // Only retry on JSON parse or Zod validation errors, once
-    const isParseOrZodError =
-      firstError instanceof SyntaxError ||
-      firstError instanceof z.ZodError ||
-      (firstError as any)?.name === 'SyntaxError' ||
-      (firstError as any)?.name === 'ZodError';
-
-    if (!isParseOrZodError) {
-      console.error('[Maya] Non-retryable error encountered:', firstError);
-      return {
-        reply: "I encountered a brief hiccup while processing that. Could you please share that with me once more?",
-        spoken_reply: options.mode === 'voice' ? "Could you please share that once more?" : null,
-        quick_replies: ["Let's try again"],
-        profile_updates: [],
-        needs_confirmation: [],
-        structured: { type: 'none', data: null },
-      };
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('[Maya Dev] Initial JSON parse/Zod validation failed. Retrying once with error guidance...', firstError);
-    }
-
-    let retryRawText = '';
-    try {
-      const retryResponse = await ai.models.generateContent({
-        model: modelName,
-        contents: [
-          { role: 'user', parts: [{ text: userContent }] },
-          { role: 'model', parts: [{ text: rawText || '{}' }] },
-          {
-            role: 'user',
-            parts: [{
-              text: `Your previous response was not valid JSON conforming to the expected Maya envelope schema.
-Error details: ${firstError instanceof Error ? firstError.message : String(firstError)}
-Please output ONLY a valid JSON object matching the Part C envelope:
-{
-  "reply": string,
-  "spoken_reply": string or null,
-  "quick_replies": string[],
-  "profile_updates": [{"path": string, "action": "set", "value": any, "reason": string}],
-  "needs_confirmation": [{"path": string, "value": any, "question": string}],
-  "structured": {"type": string, "data": any}
-}`
-            }],
-          },
-        ],
-        config: {
-          systemInstruction,
-          responseMimeType: 'application/json',
-        },
-      });
-
-      retryRawText = retryResponse.text || '';
-      const retryParsedJson = JSON.parse(cleanJsonString(retryRawText));
-      const retryValidated = MayaResponseEnvelopeSchema.parse(retryParsedJson);
-      if (options.mustAskCommunicationStyle && !offersThreeCommunicationStyles(retryValidated.quick_replies)) {
-        retryValidated.quick_replies = ['Gentle', 'Balanced', 'Straight to the point'];
-      }
-      logReplyWordCount(retryValidated.reply);
-      return retryValidated;
-    } catch (retryError) {
-      console.error('[Maya] Retry also failed. Returning friendly fallback without exposing internal error.', retryError);
-      const fallbackEnvelope: MayaResponseEnvelope = {
-        reply: options.mustAskCommunicationStyle
-          ? "When something doesn't fit the plan, how do you prefer to hear about problems — gentle, balanced, or straight to the point?"
-          : "I'm having a little trouble putting my thoughts together right now. Could you please share that with me once more?",
-        spoken_reply: options.mode === 'voice' ? "Could you please repeat that?" : null,
-        quick_replies: options.mustAskCommunicationStyle
-          ? ['Gentle', 'Balanced', 'Straight to the point']
-          : ["Let's try again", "Show plan summary"],
-        profile_updates: [],
-        needs_confirmation: [],
-        structured: { type: 'none', data: null },
-      };
-      logReplyWordCount(fallbackEnvelope.reply);
-      return fallbackEnvelope;
-    }
   }
-}
 
-/**
- * Utility to strip markdown fences (```json ... ```) if returned despite JSON mode.
- */
-function cleanJsonString(str: string): string {
-  const trimmed = str.trim();
-  if (trimmed.startsWith('```')) {
-    return trimmed.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```$/, '').trim();
-  }
-  return trimmed;
+  // Friendly graceful fallback if all retries and fallback models failed
+  console.error(`[Maya] All attempts exhausted. Final error:`, lastError?.message || lastError);
+  return {
+    reply: "I am having trouble connecting with the planning service right now. Please take a quick breath and message me again in just a moment.",
+    spoken_reply: options.mode === 'voice' ? "Trouble connecting right now. Please try again in a moment." : null,
+    quick_replies: ["Let's try again", "Show my plan"],
+    profile_updates: [],
+    needs_confirmation: [],
+    structured: { type: 'none', data: null },
+  };
 }

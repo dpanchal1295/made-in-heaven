@@ -10,6 +10,8 @@ import {
 import { PlanPartSource } from '@/types/firestore';
 import { getSession } from '@/lib/auth/session';
 
+export const maxDuration = 60;
+
 const PLAN_PART_SPEC: Record<string, { promptSummary: string; schemaDescription: string }> = {
   budget: {
     promptSummary: 'Compute an itemized wedding budget split across categories and functions.',

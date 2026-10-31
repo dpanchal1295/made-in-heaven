@@ -12,6 +12,8 @@ const SynthesizeBodySchema = z.object({
 
 import { DecisionBriefDataSchema as DecisionBriefSchema } from '@/lib/maya/schemas';
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   if (!checkOrigin(req as any)) {
     return NextResponse.json({ success: false, error: 'Forbidden: Invalid origin' }, { status: 403 });

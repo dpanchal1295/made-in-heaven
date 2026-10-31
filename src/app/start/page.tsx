@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/common/Logo';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
-import { ArrowRight, ArrowLeft, Heart, Cake, Flag, Users } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Heart, Cake, Flag } from 'lucide-react';
 import { EventType } from '@/types/firestore';
 
 function StartForm() {
@@ -18,9 +17,19 @@ function StartForm() {
   const initialType: EventType = (typeParam === 'birthday' || typeParam === 'community') ? typeParam : 'wedding';
 
   const [selectedEventType, setSelectedEventType] = useState<EventType>(initialType);
-  const [eventSubtype, setEventSubtype] = useState('');
   const [hostDisplayName, setHostDisplayName] = useState('');
-  const [celebrantOrGroupNames, setCelebrantOrGroupNames] = useState('');
+
+  // Birthday fields
+  const [birthdayCelebrant, setBirthdayCelebrant] = useState('');
+  const [birthdayMilestone, setBirthdayMilestone] = useState('');
+
+  // Community fields
+  const [communityGroupName, setCommunityGroupName] = useState('');
+  const [communityOccasion, setCommunityOccasion] = useState('');
+
+  // Wedding fields
+  const [weddingCoupleNames, setWeddingCoupleNames] = useState('');
+
   const [celebrationDate, setCelebrationDate] = useState('');
   const [city, setCity] = useState('');
   const [isCreatingHome, setIsCreatingHome] = useState(false);
@@ -59,15 +68,31 @@ function StartForm() {
     e.preventDefault();
     setCreateError(null);
 
-    if (!celebrantOrGroupNames.trim()) {
-      const err =
-        selectedEventType === 'birthday'
-          ? 'Please enter the birthday person or celebrant name.'
-          : selectedEventType === 'community'
-          ? 'Please enter the organizing group or society name.'
-          : 'Please enter the couple names.';
-      setCreateError(err);
-      return;
+    let finalCelebrationTitle = '';
+    let finalSubtype = '';
+
+    if (selectedEventType === 'birthday') {
+      if (!birthdayCelebrant.trim()) {
+        setCreateError('Please specify who the birthday is for (e.g. "Arjun, my son" or "Mum").');
+        return;
+      }
+      finalCelebrationTitle = birthdayMilestone.trim()
+        ? `${birthdayCelebrant.trim()} (${birthdayMilestone.trim()})`
+        : birthdayCelebrant.trim();
+      finalSubtype = birthdayMilestone.trim();
+    } else if (selectedEventType === 'community') {
+      if (!communityGroupName.trim()) {
+        setCreateError('Please enter the organising committee, group, or society name.');
+        return;
+      }
+      finalCelebrationTitle = communityGroupName.trim();
+      finalSubtype = communityOccasion.trim();
+    } else {
+      if (!weddingCoupleNames.trim()) {
+        setCreateError('Please enter the couple names (e.g. "Aarav & Diya").');
+        return;
+      }
+      finalCelebrationTitle = weddingCoupleNames.trim();
     }
 
     setIsCreatingHome(true);
@@ -85,11 +110,11 @@ function StartForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          coupleNames: celebrantOrGroupNames.trim(),
+          coupleNames: finalCelebrationTitle,
           date: celebrationDate.trim() || undefined,
           city: city.trim() || undefined,
           eventType: selectedEventType,
-          eventSubtype: eventSubtype.trim() || undefined,
+          eventSubtype: finalSubtype || undefined,
         }),
       });
 
@@ -98,11 +123,11 @@ function StartForm() {
         setHomeId(data.home.id);
         router.push('/chat');
       } else {
-        setCreateError(data.error || 'Failed to create your celebration home.');
+        setCreateError(data.error || 'Failed to create celebration Home.');
       }
     } catch (err) {
       console.error('Error creating home:', err);
-      setCreateError('Network error while creating your celebration home.');
+      setCreateError('Network error while creating Home.');
     } finally {
       setIsCreatingHome(false);
     }
@@ -113,7 +138,7 @@ function StartForm() {
     setJoinError(null);
 
     if (!inviteCode.trim()) {
-      setJoinError('Please enter an invite code.');
+      setJoinError('Please enter a valid invite code.');
       return;
     }
 
@@ -144,25 +169,6 @@ function StartForm() {
       setIsJoining(false);
     }
   };
-
-  const nameFieldLabel =
-    selectedEventType === 'birthday'
-      ? 'Celebrant / Birthday Person'
-      : selectedEventType === 'community'
-      ? 'Organizing Committee / Society Name'
-      : 'Couple Names';
-
-  const namePlaceholder =
-    selectedEventType === 'birthday'
-      ? 'e.g. Ananya or Dad (60th)'
-      : selectedEventType === 'community'
-      ? 'e.g. Sahyadri Heights Cultural Committee'
-      : 'e.g. Aarav & Diya';
-
-  const datePlaceholder =
-    selectedEventType === 'community'
-      ? 'e.g. October 2026 or 2026-10-12'
-      : 'e.g. 2026-12-18 or December 2026';
 
   return (
     <div className="w-full max-w-2xl space-y-8" data-event-type={selectedEventType}>
@@ -201,7 +207,7 @@ function StartForm() {
                 </div>
                 <div>
                   <h2 className="font-serif text-lg font-medium text-[#2A2521]">
-                    Indian Wedding
+                    Wedding
                   </h2>
                   <p className="text-xs text-[#6B645E] mt-1.5 leading-relaxed">
                     Mehendi to reception, itemized rupee budget, and family voting.
@@ -228,10 +234,10 @@ function StartForm() {
                 </div>
                 <div>
                   <h2 className="font-serif text-lg font-medium text-[#2A2521]">
-                    Milestone Birthday
+                    Birthday
                   </h2>
                   <p className="text-xs text-[#6B645E] mt-1.5 leading-relaxed">
-                    1st, 18th, 50th, 60th with morning puja, cake, party & gifts.
+                    1st, 18th, 50th, 60th milestone gatherings, dinner party & return gifts.
                   </p>
                 </div>
               </div>
@@ -250,7 +256,7 @@ function StartForm() {
               className="bg-white p-6 border border-[#E4DED6] hover:border-[#2A2521] transition-all cursor-pointer flex flex-col justify-between group"
             >
               <div className="space-y-3">
-                <div className="w-10 h-10 border border-[#E4DED6] bg-[#F1EDE8] flex items-center justify-center text-[#8E4A00]">
+                <div className="w-10 h-10 border border-[#E4DED6] bg-[#F1EDE8] flex items-center justify-center text-[#1B4332]">
                   <Flag className="w-4 h-4" strokeWidth={1.5} />
                 </div>
                 <div>
@@ -258,26 +264,25 @@ function StartForm() {
                     Community Event
                   </h2>
                   <p className="text-xs text-[#6B645E] mt-1.5 leading-relaxed">
-                    Navratri Garba, Ganesh Utsav, pandal layout, permits & footfall.
+                    Garba, Ganesh Utsav, Diwali Mela, crowd logistics & sponsors.
                   </p>
                 </div>
               </div>
-              <div className="mt-6 pt-3 border-t border-[#E4DED6] flex items-center justify-between text-xs font-micro uppercase tracking-[0.15em] text-[#8E4A00]">
-                <span>Plan Festival</span>
+              <div className="mt-6 pt-3 border-t border-[#E4DED6] flex items-center justify-between text-xs font-micro uppercase tracking-[0.15em] text-[#1B4332]">
+                <span>Plan Community</span>
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           </div>
 
-          {/* Join existing home button */}
-          <div className="pt-4 text-center">
+          {/* Join Home Divider Option */}
+          <div className="pt-4 border-t border-[#E4DED6] text-center">
             <button
               type="button"
               onClick={() => setActiveView('join')}
-              className="inline-flex items-center gap-2 text-xs font-sans text-[#6B645E] hover:text-[#2A2521] uppercase tracking-wider py-2 border-b border-transparent hover:border-[#2A2521] transition-all"
+              className="text-xs text-[#6B645E] hover:text-[#2A2521] font-medium tracking-wide uppercase font-micro hover:underline cursor-pointer"
             >
-              <Users className="w-3.5 h-3.5" />
-              <span>Already have an invite code? Join here</span>
+              Joining an existing family celebration? Enter invite code →
             </button>
           </div>
         </div>
@@ -313,38 +318,15 @@ function StartForm() {
                 </div>
               )}
 
-              {/* Event Subtype for Community Events */}
-              {selectedEventType === 'community' && (
-                <div className="space-y-1.5">
-                  <label htmlFor="event-subtype" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                    Occasion / Festival Type
-                  </label>
-                  <select
-                    id="event-subtype"
-                    value={eventSubtype}
-                    onChange={(e) => setEventSubtype(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] outline-hidden min-h-[44px]"
-                  >
-                    <option value="">Select festival or event</option>
-                    <option value="Navratri garba">Navratri Garba</option>
-                    <option value="Ganesh utsav">Ganesh Utsav</option>
-                    <option value="Diwali mela">Diwali Mela</option>
-                    <option value="Holi">Holi Rangotsav</option>
-                    <option value="Society annual fest">Society Annual Day / Cultural Fest</option>
-                    <option value="Other community event">Other Community Event</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Host / Your Display Name (Editable for guests and Google users) */}
+              {/* 1. Host Name (Always asked) */}
               <div className="space-y-1.5">
                 <label htmlFor="host-name" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                  Your Name (Host)
+                  Your Name (Host / Organiser)
                 </label>
                 <input
                   id="host-name"
                   type="text"
-                  placeholder="e.g. Diya Sharma or Uncle Rajesh"
+                  placeholder="e.g. Rohan Sharma"
                   value={hostDisplayName}
                   onChange={(e) => setHostDisplayName(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
@@ -352,35 +334,106 @@ function StartForm() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label htmlFor="names" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                  {nameFieldLabel}
-                </label>
-                <input
-                  id="names"
-                  type="text"
-                  placeholder={namePlaceholder}
-                  value={celebrantOrGroupNames}
-                  onChange={(e) => setCelebrantOrGroupNames(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                  required
-                />
-              </div>
+              {/* 2. Birthday Specific Inputs */}
+              {selectedEventType === 'birthday' && (
+                <>
+                  <div className="space-y-1.5">
+                    <label htmlFor="birthday-celebrant" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
+                      Who is the birthday for?
+                    </label>
+                    <input
+                      id="birthday-celebrant"
+                      type="text"
+                      placeholder="e.g. Arjun, my son or Dad"
+                      value={birthdayCelebrant}
+                      onChange={(e) => setBirthdayCelebrant(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="birthday-milestone" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
+                      Age or Milestone
+                    </label>
+                    <input
+                      id="birthday-milestone"
+                      type="text"
+                      placeholder="e.g. 1st Birthday, 18th, or 60th Shashti Poorthi"
+                      value={birthdayMilestone}
+                      onChange={(e) => setBirthdayMilestone(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                    />
+                  </div>
+                </>
+              )}
 
+              {/* 3. Community Specific Inputs */}
+              {selectedEventType === 'community' && (
+                <>
+                  <div className="space-y-1.5">
+                    <label htmlFor="community-group" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
+                      Organising Group / Society Name
+                    </label>
+                    <input
+                      id="community-group"
+                      type="text"
+                      placeholder="e.g. Sahyadri Heights Cultural Committee"
+                      value={communityGroupName}
+                      onChange={(e) => setCommunityGroupName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="community-occasion" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
+                      Occasion / Festival
+                    </label>
+                    <input
+                      id="community-occasion"
+                      type="text"
+                      placeholder="e.g. Navratri Garba Utsav or Diwali Mela"
+                      value={communityOccasion}
+                      onChange={(e) => setCommunityOccasion(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* 4. Wedding Specific Inputs */}
+              {selectedEventType === 'wedding' && (
+                <div className="space-y-1.5">
+                  <label htmlFor="wedding-couple" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
+                    Couple Names
+                  </label>
+                  <input
+                    id="wedding-couple"
+                    type="text"
+                    placeholder="e.g. Aarav & Diya"
+                    value={weddingCoupleNames}
+                    onChange={(e) => setWeddingCoupleNames(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* 5. Date */}
               <div className="space-y-1.5">
                 <label htmlFor="date" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                  Target Date or Season
+                  Target Date or Month
                 </label>
                 <input
                   id="date"
                   type="text"
-                  placeholder={datePlaceholder}
+                  placeholder="e.g. 18 December 2026 or December 2026"
                   value={celebrationDate}
                   onChange={(e) => setCelebrationDate(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
                 />
               </div>
 
+              {/* 6. City / Location */}
               <div className="space-y-1.5">
                 <label htmlFor="city" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
                   {selectedEventType === 'community' ? 'City / Society Ground' : 'City'}
@@ -388,7 +441,7 @@ function StartForm() {
                 <input
                   id="city"
                   type="text"
-                  placeholder="e.g. Pune, Ahmedabad, Mumbai"
+                  placeholder="e.g. Pune, Bengaluru, or Mumbai"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"

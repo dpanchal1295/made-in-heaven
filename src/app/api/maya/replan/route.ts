@@ -5,6 +5,8 @@ import { getWeddingStorage } from '@/lib/storage';
 import { getSession } from '@/lib/auth/session';
 import { executeReplan } from '@/lib/maya/replanEngine';
 
+export const maxDuration = 60;
+
 const ReplanBodySchema = z.object({
   change: z.object({
     path: z.string().min(1),

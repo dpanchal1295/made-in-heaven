@@ -8,7 +8,9 @@ import { NeedsConfirmation } from '@/lib/maya/schemas';
 import { PlanPartSource } from '@/types/firestore';
 import { getSession } from '@/lib/auth/session';
 import { checkRateLimit } from '@/lib/security/rateLimit';
-import { generateFirstMessage } from '@/lib/maya/firstMessage';
+import { generateFirstMessageLive } from '@/lib/maya/firstMessage';
+
+export const maxDuration = 60;
 
 const DEFAULT_ROOM_ID = 'onboarding';
 
@@ -65,7 +67,7 @@ export async function GET(req: NextRequest) {
 
     // If room is empty, create initial welcoming Maya message
     if (messages.length === 0) {
-      const initialEnvelope = generateFirstMessage(
+      const initialEnvelope = await generateFirstMessageLive(
         home.name || 'Your Celebration',
         home.profile || {},
         budget,
@@ -154,22 +156,23 @@ export async function POST(req: NextRequest) {
     const homeId = session.homeId;
     const speaker = session.member;
 
-    // 1. Load context: profile, budget, recent messages
+    const t0 = Date.now();
+
+    // 1. Load context in parallel with user message persistence
     const [home, budget, recentMessages] = await Promise.all([
       storage.getHome(homeId),
       storage.getBudget(homeId),
       storage.getRecentMessages(homeId, roomId, 20),
+      storage.addMessage(homeId, roomId, {
+        authorType: 'member',
+        authorUid: speaker.uid,
+        text: message.trim(),
+        lang: speaker.preferredLanguage || 'en',
+      }),
     ]);
+    const tLoad = Date.now() - t0;
 
-    // 2. Save user message to storage
-    await storage.addMessage(homeId, roomId, {
-      authorType: 'member',
-      authorUid: speaker.uid,
-      text: message.trim(),
-      lang: speaker.preferredLanguage || 'en',
-    });
-
-    // 3. Compute onboarding progress & inject targeted instructions into context
+    // 2. Compute onboarding progress & inject targeted instructions into context
     const currentOnboarding = getOnboardingStatus(home.profile, budget);
     const mustAskCommunicationStyle = Boolean(
       currentOnboarding.isCoreComplete && !currentOnboarding.fields.communicationStyle
@@ -189,7 +192,7 @@ Do NOT offer any other options or next steps yet.
 When they answer, save it to "communication_style.honesty_preference".`;
     } else if (!currentOnboarding.isCoreComplete) {
       onboardingGuidance = `ONBOARDING IN PROGRESS:
-The couple has completed ${currentOnboarding.completedCount}/6 core wedding details.
+The couple has completed ${currentOnboarding.completedCount}/6 core celebration details.
 Missing required fields: ${currentOnboarding.missingFields.join(', ')}.
 Core habit: Ask ONE question at a time for the next missing field, with 3 to 4 quick example answers.`;
     }
@@ -203,7 +206,8 @@ Store the range as given (low and high) and the planning value (midpoint).
 Maya MUST explicitly say which single number she will plan with and must never silently turn a range into one number.`;
     }
 
-    // 4. Call Maya AI (server-only call with Gemini SDK, system prompt Part A + C, Zod validation, retry)
+    // 3. Call Maya AI (optimized with 0 thinkingBudget for chat latency)
+    const tAiStart = Date.now();
     const envelope = await callMaya({
       userMessage: message.trim(),
       speaker: {
@@ -220,38 +224,47 @@ Maya MUST explicitly say which single number she will plan with and must never s
       recentMessages,
       onboardingGuidance,
     });
+    const tAi = Date.now() - tAiStart;
 
-    // 5. Apply allowed profile updates
+    // 4. Save updates and confirmations in parallel
+    const tSaveStart = Date.now();
     let updatedProfile = home.profile;
     let updatedBudget = budget;
-    if (envelope.profile_updates && envelope.profile_updates.length > 0) {
-      const updateResult = await storage.applyProfileUpdates(
-        homeId,
-        envelope.profile_updates,
-        speaker.permission
-      );
-      updatedProfile = updateResult.profile;
-      updatedBudget = updateResult.budget;
-    }
 
-    // 6. Handle needs_confirmation items
-    const savedConfirmations: NeedsConfirmation[] = [];
-    if (envelope.needs_confirmation && envelope.needs_confirmation.length > 0) {
-      for (const item of envelope.needs_confirmation) {
-        const saved = await storage.savePendingConfirmation(homeId, {
+    const profileUpdatePromise = (async () => {
+      if (envelope.profile_updates && envelope.profile_updates.length > 0) {
+        const updateResult = await storage.applyProfileUpdates(
           homeId,
-          path: item.path,
-          value: item.value,
-          question: item.question,
-        });
-        savedConfirmations.push({
-          id: saved.id,
-          path: saved.path,
-          value: saved.value,
-          question: saved.question,
-        });
+          envelope.profile_updates,
+          speaker.permission
+        );
+        updatedProfile = updateResult.profile;
+        updatedBudget = updateResult.budget;
       }
-    }
+    })();
+
+    const confirmationPromise = (async () => {
+      const savedConfirmations: NeedsConfirmation[] = [];
+      if (envelope.needs_confirmation && envelope.needs_confirmation.length > 0) {
+        await Promise.all(
+          envelope.needs_confirmation.map(async (item) => {
+            const saved = await storage.savePendingConfirmation(homeId, {
+              homeId,
+              path: item.path,
+              value: item.value,
+              question: item.question,
+            });
+            savedConfirmations.push({
+              id: saved.id,
+              path: saved.path,
+              value: saved.value,
+              question: saved.question,
+            });
+          })
+        );
+      }
+      return savedConfirmations;
+    })();
 
     let savedPlanPart: string | null = null;
     let updatedPlan = await storage.getPlan(homeId);
@@ -264,8 +277,7 @@ Maya MUST explicitly say which single number she will plan with and must never s
       }
     }
 
-    // 8. Save Maya's reply to message history
-    const mayaMessage = await storage.addMessage(homeId, roomId, {
+    const messagePromise = storage.addMessage(homeId, roomId, {
       authorType: 'maya',
       authorUid: 'maya-ai',
       text: envelope.reply,
@@ -273,6 +285,15 @@ Maya MUST explicitly say which single number she will plan with and must never s
       structured: envelope,
       planPartSaved: savedPlanPart,
     });
+
+    const [, savedConfirmations, mayaMessage] = await Promise.all([
+      profileUpdatePromise,
+      confirmationPromise,
+      messagePromise,
+    ]);
+    const tSave = Date.now() - tSaveStart;
+    const totalDuration = Date.now() - t0;
+    console.log(`[Timing /api/maya] Total: ${totalDuration}ms (StorageLoad: ${tLoad}ms, GeminiAI: ${tAi}ms, StorageSave: ${tSave}ms)`);
 
     const finalOnboarding = getOnboardingStatus(updatedProfile, updatedBudget);
     const safePlan = speaker.canSeeBudget ? updatedPlan : (updatedPlan ? { ...updatedPlan, budget: null } : null);
