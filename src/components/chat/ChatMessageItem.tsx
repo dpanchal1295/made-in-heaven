@@ -58,6 +58,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           {/* Message Bubble */}
           <div className="bg-[#FCFBF8] border border-[#E4DED6] p-5 text-sm text-[#2A2521] leading-relaxed shadow-xs">
             <SafeMarkdown content={message.text} />
+            {message.voiceNote && (
+              <div className="mt-2.5 pt-2 border-t border-[#E4DED6] text-[11px] text-[#863A57] font-sans">
+                {message.voiceNote}
+              </div>
+            )}
             {message.planPartSaved && (
               <div className="mt-3 pt-3 border-t border-[#E4DED6] flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#A8603E]" />
@@ -162,3 +167,4 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     </div>
   );
 };
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
@@ -43,6 +43,7 @@ export default function PlanPage() {
   const [budget, setBudget] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingTab, setIsGeneratingTab] = useState(false);
+  const [generatingTabs, setGeneratingTabs] = useState<Record<string, boolean>>({});
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [isReplanOpen, setIsReplanOpen] = useState(false);
   const [isApplyingReplan, setIsApplyingReplan] = useState(false);
@@ -123,37 +124,89 @@ export default function PlanPage() {
     }
   };
 
-  // Generate all 6 parts
+  // Fast Concurrent Plan Generation: up to 3 parts at a time, streaming into state as soon as each completes
   const handleGenerateAll = async () => {
+    if (!user?.homeId || !user?.uid) return;
     setIsGeneratingAll(true);
+    const homeId = user.homeId;
+    const uid = user.uid;
+
+    const partsToRun: PlanTabKey[] = canSeeBudget
+      ? ['budget', 'timeline', 'checklist', 'palette', 'decor', 'attire']
+      : ['timeline', 'checklist', 'palette', 'decor', 'attire'];
+
+    const initialGenerating: Record<string, boolean> = {};
+    partsToRun.forEach((p) => {
+      initialGenerating[p] = true;
+    });
+    setGeneratingTabs(initialGenerating);
+
+    let completedCount = 0;
+
+    // Helper to generate a single part with retry
+    const generateSinglePartWorker = async (partKey: PlanTabKey) => {
+      try {
+        let attempt = 0;
+        let success = false;
+        while (attempt < 2 && !success) {
+          attempt++;
+          const res = await fetch('/api/maya/plan', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-member-uid': uid,
+              'x-home-id': homeId,
+            },
+            body: JSON.stringify({ part: partKey, homeId, uid }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.plan) {
+              setPlan((prevPlan) => ({
+                ...(prevPlan || ({} as WeddingPlan)),
+                [partKey]: data.plan[partKey],
+              }));
+              success = true;
+              completedCount++;
+              if (completedCount === 1) {
+                showToast(`First tab (${partKey.toUpperCase()}) is ready!`);
+              }
+            }
+          }
+
+          if (!success && attempt < 2) {
+            await new Promise((r) => setTimeout(r, 1200));
+          }
+        }
+      } catch (err) {
+        console.error(`Worker error for ${partKey}:`, err);
+      } finally {
+        setGeneratingTabs((prev) => ({ ...prev, [partKey]: false }));
+      }
+    };
+
+    // Concurrency pool with at most 3 simultaneous requests
+    const queue = [...partsToRun];
+    const workers = Array.from({ length: Math.min(3, queue.length) }, async () => {
+      while (queue.length > 0) {
+        const nextPart = queue.shift();
+        if (nextPart) {
+          await generateSinglePartWorker(nextPart);
+        }
+      }
+    });
+
     try {
-      if (!user?.homeId) {
-        setIsLoading(false);
-        return;
-      }
-      const homeId = user.homeId;
-      const uid = user.uid;
-      const res = await fetch('/api/maya/plan', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-member-uid': uid,
-          'x-home-id': homeId,
-        },
-        body: JSON.stringify({ part: 'all', homeId, uid }),
-      });
-      const data = await res.json();
-      if (data.success && data.plan) {
-        setPlan(data.plan);
-        showToast('Full wedding plan generated across all 6 tabs!');
-      } else {
-        showToast(data.error || 'Failed to generate full plan', 'error');
-      }
+      await Promise.all(workers);
+      showToast('All plan tabs have been drafted by Maya!', 'success');
+      // Refresh overall plan state to synchronize
+      await fetchPlanState();
     } catch (err) {
-      console.error('Error generating all parts:', err);
-      showToast('Network error generating full plan', 'error');
+      console.error('Fast generation pool error:', err);
     } finally {
       setIsGeneratingAll(false);
+      setGeneratingTabs({});
     }
   };
 
@@ -344,6 +397,7 @@ export default function PlanPage() {
               const partObj = plan ? (plan as any)[tab.key] : null;
               const isGenerated = Boolean(partObj && partObj.data);
               const isMock = partObj?.source === 'mock';
+              const isTabGenerating = Boolean(generatingTabs[tab.key]);
               const isTabChanged = changedTabKeys.includes(tab.key);
 
               return (
@@ -352,7 +406,14 @@ export default function PlanPage() {
                   value={tab.key}
                   icon={<tab.icon className={`w-3.5 h-3.5 ${isTabChanged ? 'text-[#94512F]' : ''}`} strokeWidth={1.5} />}
                   badge={
-                    isTabChanged ? (
+                    isTabGenerating ? (
+                      <span
+                        className="px-1.5 py-0.2 bg-[#F1EDE8] text-[#94512F] text-[9px] font-mono tracking-wider uppercase animate-pulse"
+                        title="Drafting… with Maya"
+                      >
+                        Drafting……
+                      </span>
+                    ) : isTabChanged ? (
                       <span
                         className="px-1.5 py-0.2 bg-[#94512F] text-white text-[9px] font-mono tracking-wider uppercase font-semibold"
                         title="Updated in recent replan"
@@ -415,7 +476,7 @@ export default function PlanPage() {
                     totalBudget={totalBudget}
                     budgetRange={budgetRange}
                     onGenerate={() => handleGeneratePart('budget')}
-                    isLoading={isGeneratingTab}
+                    isLoading={isGeneratingTab || Boolean(generatingTabs[activeTab])}
                   />
                 )}
               </TabContent>
@@ -426,7 +487,7 @@ export default function PlanPage() {
                   source={plan?.timeline?.source}
                   weddingDate={weddingDate}
                   onGenerate={() => handleGeneratePart('timeline')}
-                  isLoading={isGeneratingTab}
+                  isLoading={isGeneratingTab || Boolean(generatingTabs[activeTab])}
                 />
               </TabContent>
 
@@ -437,7 +498,7 @@ export default function PlanPage() {
                   source={plan?.checklist?.source}
                   onToggleBooked={handleToggleChecklist}
                   onGenerate={() => handleGeneratePart('checklist')}
-                  isLoading={isGeneratingTab}
+                  isLoading={isGeneratingTab || Boolean(generatingTabs[activeTab])}
                 />
               </TabContent>
 
@@ -446,7 +507,7 @@ export default function PlanPage() {
                   paletteData={plan?.palette?.data || null}
                   source={plan?.palette?.source}
                   onGenerate={() => handleGeneratePart('palette')}
-                  isLoading={isGeneratingTab}
+                  isLoading={isGeneratingTab || Boolean(generatingTabs[activeTab])}
                 />
               </TabContent>
 
@@ -455,7 +516,7 @@ export default function PlanPage() {
                   decorData={plan?.decor?.data || null}
                   source={plan?.decor?.source}
                   onGenerate={() => handleGeneratePart('decor')}
-                  isLoading={isGeneratingTab}
+                  isLoading={isGeneratingTab || Boolean(generatingTabs[activeTab])}
                 />
               </TabContent>
 
@@ -464,7 +525,7 @@ export default function PlanPage() {
                   attireData={plan?.attire?.data || null}
                   source={plan?.attire?.source}
                   onGenerate={() => handleGeneratePart('attire')}
-                  isLoading={isGeneratingTab}
+                  isLoading={isGeneratingTab || Boolean(generatingTabs[activeTab])}
                 />
               </TabContent>
             </div>
@@ -474,3 +535,7 @@ export default function PlanPage() {
     </AppShell>
   );
 }
+
+
+
+

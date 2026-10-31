@@ -19,6 +19,12 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { Logo } from '@/components/common/Logo';
+import {
+  detectTextScriptLang,
+  getAvailableVoices,
+  selectFemaleVoice,
+  VoiceSelectionResult,
+} from '@/lib/utils/mayaVoice';
 
 // Map user language to Web Speech recognition & synthesis BCP-47 tags
 const LANG_MAP: Record<string, string> = {
@@ -118,16 +124,31 @@ export const ChatContainer: React.FC = () => {
     }
   }, []);
 
-  // Speak text with SpeechSynthesis in the chosen language
+  // Speak text with SpeechSynthesis using preferred female voice and script detection
   const speakText = useCallback(
-    (textToSpeak: string) => {
+    async (textToSpeak: string): Promise<string | null> => {
       if (!voiceSpeakerEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) {
-        return;
+        return null;
       }
       try {
         window.speechSynthesis.cancel();
+
+        // 1. Detect language from text script first
+        const detectedLang = detectTextScriptLang(textToSpeak, userLangCode);
+
+        // 2. Await voices
+        const availableVoices = await getAvailableVoices();
+        const selection: VoiceSelectionResult = selectFemaleVoice(availableVoices, detectedLang);
+
+        // 3. If no matching voice for that language, do NOT speak with wrong voice
+        if (!selection.hasMatchingVoice || !selection.voice) {
+          setIsSpeakingAudio(false);
+          return selection.unsupportedMessage || null;
+        }
+
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.lang = speechLang;
+        utterance.voice = selection.voice;
+        utterance.lang = selection.voice.lang || detectedLang;
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
 
@@ -136,12 +157,14 @@ export const ChatContainer: React.FC = () => {
         utterance.onerror = () => setIsSpeakingAudio(false);
 
         window.speechSynthesis.speak(utterance);
+        return null;
       } catch (err) {
         console.warn('Speech synthesis error:', err);
         setIsSpeakingAudio(false);
+        return null;
       }
     },
-    [voiceSpeakerEnabled, speechLang]
+    [voiceSpeakerEnabled, userLangCode]
   );
 
   // Stop recognition helper
@@ -348,7 +371,13 @@ export const ChatContainer: React.FC = () => {
         // Voice output: Speak Maya's response aloud if voice mode or speaker is active
         const textToRead = data.spoken_reply || mayaReply;
         if (textToRead && voiceSpeakerEnabled) {
-          speakText(textToRead);
+          speakText(textToRead).then((voiceNote) => {
+            if (voiceNote) {
+              setMessages((msgs) =>
+                msgs.map((m) => (m.id === mayaMsg.id ? { ...m, voiceNote } : m))
+              );
+            }
+          });
         }
 
         // If there is a confirmation question, read it aloud too
@@ -806,3 +835,5 @@ export const ChatContainer: React.FC = () => {
     </div>
   );
 };
+
+

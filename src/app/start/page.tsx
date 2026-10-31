@@ -119,18 +119,18 @@ function StartForm() {
   // Compute live celebration title for preview
   const celebrationTitlePreview = useMemo(() => {
     if (selectedEventType === 'birthday') {
-      if (!birthdayCelebrant.trim()) return 'Celebrant Birthday';
+      if (!birthdayCelebrant.trim()) return 'Your birthday celebration';
       return birthdayMilestone.trim()
-        ? `${birthdayCelebrant.trim()} (${birthdayMilestone.trim()})`
-        : `${birthdayCelebrant.trim()}'s Birthday`;
+        ? `${birthdayCelebrant.trim()}'s ${birthdayMilestone.trim()}`
+        : `${birthdayCelebrant.trim()}'s birthday`;
     }
     if (selectedEventType === 'community') {
-      if (!communityGroupName.trim()) return 'Community Gathering';
+      if (!communityGroupName.trim()) return 'Your community event';
       return communityOccasion.trim()
         ? `${communityGroupName.trim()} • ${communityOccasion.trim()}`
         : communityGroupName.trim();
     }
-    return weddingCoupleNames.trim() || 'Aarav & Diya';
+    return weddingCoupleNames.trim() || 'Your wedding';
   }, [selectedEventType, birthdayCelebrant, birthdayMilestone, communityGroupName, communityOccasion, weddingCoupleNames]);
 
   const handleCreateHome = async (e: React.FormEvent) => {
@@ -315,7 +315,11 @@ function StartForm() {
                       className="font-micro text-xs uppercase tracking-[0.18em] font-medium transition-colors"
                       style={{ color: opt.accentDark }}
                     >
-                      Plan {opt.title.split(' ')[0]}
+                      {opt.type === 'wedding'
+                        ? 'Plan a wedding'
+                        : opt.type === 'birthday'
+                        ? 'Plan a birthday'
+                        : 'Plan a community event'}
                     </span>
                     <div
                       className="w-8 h-8 border border-[#E4DED6] flex items-center justify-center bg-white group-hover:border-[#2A2521] transition-colors"

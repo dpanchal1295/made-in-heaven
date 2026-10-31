@@ -128,6 +128,7 @@ export interface Message {
   lang: string;
   structured?: any; // Structured envelope payload if message came from Maya
   planPartSaved?: string | null;
+  voiceNote?: string | null;
   createdAt: number;
 }
 
