@@ -279,11 +279,11 @@ Do NOT wrap the array in an object key like { items: ... } or { ${p}: ... }. Ret
             const isRateLimitReply = envelope.reply?.includes('high demand') || envelope.reply?.includes('catching her breath');
             console.warn(`[Plan Generator Live Attempt ${attempt}] Part "${p}": Response structured type mismatch or 429. Type received: "${envelope.structured?.type}" (RateLimit: ${isRateLimitReply})`);
             
-            if (isRateLimitReply && attempt < 3) {
+            if (isRateLimitReply && attempt < 2) {
               // Rate limited by Gemini free tier RPM: wait 5s before retrying
               console.log(`[Plan Generator] Rate limited on part "${p}", waiting 5s before retry ${attempt + 1}...`);
               await new Promise((r) => setTimeout(r, 5000));
-            } else if (attempt >= 3) {
+            } else if (attempt >= 2) {
               const fallbackEnvelope = getMockPlanEnvelope(p);
               partData = fallbackEnvelope.structured.data;
               partSource = 'mock';
@@ -321,3 +321,4 @@ Do NOT wrap the array in an object key like { items: ... } or { ${p}: ... }. Ret
     );
   }
 }
+
