@@ -22,7 +22,9 @@ function SignInForm() {
 
   useEffect(() => {
     if (user) {
-      if (user.homeId) {
+      if (redirectUrl.startsWith('/invites/')) {
+        router.replace(redirectUrl);
+      } else if (user.homeId) {
         router.replace('/home');
       } else {
         const dest = typeParam ? `${redirectUrl}?type=${typeParam}` : redirectUrl;

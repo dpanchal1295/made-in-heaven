@@ -18,6 +18,7 @@ export default function FamilyPage() {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [ideaCounts, setIdeaCounts] = useState<Record<string, number>>({});
   const [inviteCode, setInviteCode] = useState('');
+  const [inviteUrl, setInviteUrl] = useState('');
   const [homeName, setHomeName] = useState('Our Celebration');
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingMember, setIsUpdatingMember] = useState<string | null>(null);
@@ -35,7 +36,13 @@ export default function FamilyPage() {
         const data = await membersRes.json();
         if (data.success) {
           setMembers(data.members || []);
-          if (data.inviteCode) setInviteCode(data.inviteCode);
+          if (data.inviteCode) {
+            setInviteCode(data.inviteCode);
+            // Default share link if token-based link hasn't been generated yet
+            if (typeof window !== 'undefined') {
+              setInviteUrl((prev) => prev || `${window.location.origin}/start?code=${data.inviteCode}`);
+            }
+          }
           if (data.homeName) setHomeName(data.homeName);
         }
       }
@@ -94,6 +101,8 @@ export default function FamilyPage() {
     if (!user?.homeId) return;
 
     try {
+      let linkToCopy = inviteUrl;
+
       if (isCurrentUserCouple) {
         const res = await fetch(`/api/homes/${user.homeId}/invites`, {
           method: 'POST',
@@ -101,7 +110,9 @@ export default function FamilyPage() {
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.inviteUrl) {
-            await navigator.clipboard.writeText(data.inviteUrl);
+            const absoluteUrl = `${window.location.origin}${data.inviteUrl}`;
+            setInviteUrl(absoluteUrl);
+            await navigator.clipboard.writeText(absoluteUrl);
             setToast({
               message: `Generated and copied invite link! Expires in 7 days.`,
               type: 'success',
@@ -111,8 +122,10 @@ export default function FamilyPage() {
         }
       }
 
-      const inviteLink = `${window.location.origin}/start?code=${inviteCode}`;
-      await navigator.clipboard.writeText(inviteLink);
+      if (!linkToCopy) {
+        linkToCopy = `${window.location.origin}/start?code=${inviteCode}`;
+      }
+      await navigator.clipboard.writeText(linkToCopy);
       setToast({
         message: `Copied invite link (${inviteCode}) to clipboard!`,
         type: 'success',
@@ -127,8 +140,8 @@ export default function FamilyPage() {
 
   // WhatsApp share helper (safe: no PII beyond celebration title)
   const handleWhatsAppShare = () => {
-    const inviteLink = `${window.location.origin}/start?code=${inviteCode}`;
-    const message = `Join our celebration planning for ${homeName} on Made in Heaven: ${inviteLink}`;
+    const link = inviteUrl || `${window.location.origin}/start?code=${inviteCode}`;
+    const message = `Join our celebration planning for ${homeName} on Made in Heaven: ${link}`;
     const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
@@ -264,6 +277,17 @@ export default function FamilyPage() {
                 Active
               </span>
             </div>
+
+            {inviteUrl && (
+              <div className="pt-1">
+                <span className="font-micro text-[9px] text-[#6B645E] uppercase tracking-[0.15em] block mb-1">
+                  Shareable Link
+                </span>
+                <div className="text-[11px] font-mono text-[#2A2521] bg-[#FAF8F5] border border-[#E4DED6] px-2.5 py-1.5 truncate select-all">
+                  {inviteUrl}
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 pt-1">
               <Button
