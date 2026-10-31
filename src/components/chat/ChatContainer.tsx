@@ -350,11 +350,11 @@ export const ChatContainer: React.FC = () => {
           <button
             onClick={() => setIsSidebarOpen((prev) => !prev)}
             className="flex items-center gap-2 px-3 py-1.5 border border-[#E4DED6] bg-white hover:bg-[#F1EDE8] text-xs font-medium text-[#2A2521] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#94512F]"
-            aria-label="Toggle wedding profile"
+            aria-label="Toggle celebration profile details"
           >
             <Sliders className="w-3.5 h-3.5 text-[#94512F]" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Profile:</span>
-            <span className="font-mono text-xs">{status?.completedCount ?? 0}/6</span>
+            <span className="hidden sm:inline">Details:</span>
+            <span className="font-mono text-xs">{status?.completedCount ?? 0}/{status?.totalRequired ?? 6}</span>
           </button>
         </div>
 
@@ -402,14 +402,20 @@ export const ChatContainer: React.FC = () => {
 
               {/* Typing / Thinking Indicator */}
               {isLoading && (
-                <div className="flex items-center gap-3 mb-4 max-w-md">
-                  <div className="bg-[#FCFBF8] border border-[#E4DED6] px-4 py-2.5 flex items-center gap-2">
-                    <span className="font-micro text-[10px] text-[#94512F] uppercase tracking-[0.2em]">
-                      MAYA IS THINKING
+                <div
+                  className="flex items-center gap-3 mb-4 max-w-md"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <div className="bg-[#FCFBF8] border border-[#E4DED6] px-4 py-2.5 flex items-center gap-2.5 shadow-xs">
+                    <span className="font-serif italic text-xs text-[#2A2521]">
+                      Maya is typing…
                     </span>
-                    <span className="w-1 h-1 bg-[#94512F] animate-bounce" />
-                    <span className="w-1 h-1 bg-[#94512F] animate-bounce [animation-delay:0.2s]" />
-                    <span className="w-1 h-1 bg-[#94512F] animate-bounce [animation-delay:0.4s]" />
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#94512F] animate-bounce" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#94512F] animate-bounce [animation-delay:0.2s]" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#94512F] animate-bounce [animation-delay:0.4s]" />
+                    </span>
                   </div>
                 </div>
               )}
@@ -433,7 +439,7 @@ export const ChatContainer: React.FC = () => {
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Reply to Maya... (e.g. 'We are aiming for December in Pune with 300 guests')"
+              placeholder="Reply to Maya... (e.g. 'We are thinking around 150 guests' or 'Suggest some themes')"
               disabled={isLoading || isInitializing}
               className="flex-1 bg-white border border-[#E4DED6] focus:border-[#2A2521] px-4 py-3 text-sm text-[#2A2521] placeholder-[#6B645E]/60 focus:outline-none focus:ring-1 focus:ring-[#2A2521] transition-all disabled:opacity-50"
               aria-label="Message to Maya"

@@ -112,6 +112,7 @@ export function GlobalHeader() {
                 <button
                   type="button"
                   onClick={() => setCelebrationsDropdownOpen(!celebrationsDropdownOpen)}
+                  aria-label="My celebrations"
                   aria-expanded={celebrationsDropdownOpen}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-xs transition-colors cursor-pointer ${
                     isTransparent
@@ -119,11 +120,8 @@ export function GlobalHeader() {
                       : 'border-[#E4DED6] bg-white text-[#2A2521] hover:bg-[#F9F7F4]'
                   }`}
                 >
-                  <span className="font-micro text-[10px] uppercase text-[#8E4A00] font-semibold hidden sm:inline">
-                    Celebration:
-                  </span>
-                  <span className="font-medium text-xs truncate max-w-[100px] sm:max-w-[130px]">
-                    {user.homeName || 'My Celebrations'}
+                  <span className="font-medium text-xs truncate max-w-[130px] sm:max-w-[200px]">
+                    {user.homeName ? `${user.homeName} · ${user.eventType ? user.eventType.charAt(0).toUpperCase() + user.eventType.slice(1) : 'Celebration'}` : 'My celebrations'}
                   </span>
                   <ChevronDown className="w-3 h-3 text-[#6B645E]" />
                 </button>

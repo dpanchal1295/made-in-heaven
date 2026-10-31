@@ -2,9 +2,10 @@
 
 import React from 'react';
 import { EventProfile, PrivateBudget } from '@/types/firestore';
-import { formatINR, formatINRLakhs, OnboardingStatus } from '@/lib/utils/format';
-import { Badge, ProgressBar, Button } from '@/components/ui';
+import { formatINR, OnboardingStatus } from '@/lib/utils/format';
+import { Badge, ProgressBar } from '@/components/ui';
 import { Calendar, MapPin, Users, Wallet, Sparkles, Sliders, X, RotateCcw } from 'lucide-react';
+import { COPY, getCelebrationTerms } from '@/config/copy';
 
 interface ProfileSidePanelProps {
   profile: EventProfile | null;
@@ -25,6 +26,8 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
   onReset,
   isResetting = false,
 }) => {
+  const terms = getCelebrationTerms(profile?.eventType);
+
   return (
     <aside
       className={`
@@ -38,10 +41,10 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
       <div className="p-5 border-b border-[#E4DED6] flex items-center justify-between">
         <div>
           <h2 className="font-serif font-medium text-[#2A2521] text-lg">
-            Wedding Profile
+            {COPY.profilePanel.title}
           </h2>
           <p className="font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em] mt-0.5">
-            LIVE UPDATES FROM MAYA
+            LIVE NOTES FROM MAYA
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -57,14 +60,14 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
         </div>
       </div>
 
-      {/* Onboarding Progress Card: Flat editorial fraction and thin hairline progress bar */}
+      {/* Onboarding Progress Card */}
       <div className="p-5 border-b border-[#E4DED6] bg-[#F1EDE8]">
         <div className="flex items-center justify-between mb-2">
           <span className="font-micro text-[10px] text-[#6B645E] uppercase tracking-[0.2em]">
-            ONBOARDING PROGRESS
+            DETAILS GATHERED
           </span>
           <span className="font-serif text-sm font-medium text-[#2A2521]">
-            {status.completedCount} of {status.totalRequired} details complete
+            {status.completedCount} of {status.totalRequired} {COPY.profilePanel.progressLabel}
           </span>
         </div>
 
@@ -78,7 +81,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
         />
 
         <div className="mt-2.5 flex items-center justify-between text-xs text-[#6B645E]">
-          <span>{status.isCoreComplete ? 'Core foundation saved' : 'Collecting details'}</span>
+          <span>{status.isCoreComplete ? 'Key foundation saved' : 'Collecting details'}</span>
           <span className="font-mono">{status.percent}%</span>
         </div>
       </div>
@@ -90,7 +93,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
           <div className="flex items-center justify-between">
             <span className="font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em] flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-[#94512F]" strokeWidth={1.5} />
-              Date / Season
+              {terms.dateLabel}
             </span>
             {profile?.date ? (
               <Badge variant="outline" size="sm" className="font-micro text-[#2A2521]">Saved</Badge>
@@ -99,7 +102,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
             )}
           </div>
           <div className="mt-2 font-serif text-base font-normal text-[#2A2521]">
-            {profile?.date || 'Not yet set'}
+            {profile?.date || COPY.profilePanel.notSet}
           </div>
         </div>
 
@@ -108,7 +111,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
           <div className="flex items-center justify-between">
             <span className="font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em] flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-[#94512F]" strokeWidth={1.5} />
-              City
+              {COPY.profilePanel.city}
             </span>
             {profile?.city ? (
               <Badge variant="outline" size="sm" className="font-micro text-[#2A2521]">Saved</Badge>
@@ -117,7 +120,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
             )}
           </div>
           <div className="mt-2 font-serif text-base font-normal text-[#2A2521]">
-            {profile?.city || 'Not yet set'}
+            {profile?.city || COPY.profilePanel.notSet}
           </div>
         </div>
 
@@ -126,7 +129,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
           <div className="flex items-center justify-between">
             <span className="font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em] flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-[#94512F]" strokeWidth={1.5} />
-              Guest Count
+              {terms.guestLabel}
             </span>
             {profile?.guest_count?.estimate || profile?.guest_count?.planning_value ? (
               <Badge variant="outline" size="sm" className="font-micro text-[#2A2521]">Saved</Badge>
@@ -150,7 +153,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
               </div>
             ) : (
               <div className="font-serif text-base text-[#6B645E]">
-                Not yet set
+                {COPY.profilePanel.notSet}
               </div>
             )}
           </div>
@@ -161,7 +164,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
           <div className="flex items-center justify-between">
             <span className="font-micro text-[11px] text-[#94512F] uppercase tracking-[0.15em] flex items-center gap-1.5">
               <Wallet className="w-3.5 h-3.5 text-[#94512F]" strokeWidth={1.5} />
-              Total Budget
+              {COPY.profilePanel.budget}
             </span>
             {budget?.total || budget?.planning_value ? (
               <Badge variant="outline" size="sm" className="font-micro text-[#2A2521]">Saved</Badge>
@@ -179,23 +182,27 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
                   {formatINR(budget.planning_value ?? budget.total)}
                 </div>
               </div>
-            ) : (
+            ) : budget?.total ? (
               <div className="font-serif text-xl font-normal text-[#2A2521]">
-                {formatINR(budget?.total)}
+                {formatINR(budget.total)}
+              </div>
+            ) : (
+              <div className="font-serif text-base text-[#6B645E]">
+                {COPY.profilePanel.notSet}
               </div>
             )}
           </div>
           <p className="text-[10px] text-[#6B645E] mt-1.5">
-            Stored in private budget with couple permissions.
+            Stored in private budget with host permissions.
           </p>
         </div>
 
-        {/* 5. Culture & Traditions */}
+        {/* 5. Theme / Culture */}
         <div className="p-4 border border-[#E4DED6] bg-white">
           <div className="flex items-center justify-between">
             <span className="font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em] flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-[#94512F]" strokeWidth={1.5} />
-              Culture & Traditions
+              {terms.themeOrCultureLabel}
             </span>
             {profile?.culture && profile.culture.length > 0 ? (
               <Badge variant="outline" size="sm" className="font-micro text-[#2A2521]">Saved</Badge>
@@ -211,7 +218,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
                 </span>
               ))
             ) : (
-              <span className="text-xs text-[#6B645E] italic">Not yet set</span>
+              <span className="text-xs text-[#6B645E] italic">{COPY.profilePanel.notSet}</span>
             )}
           </div>
         </div>
@@ -221,7 +228,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
           <div className="flex items-center justify-between">
             <span className="font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em] flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-[#94512F]" strokeWidth={1.5} />
-              Wedding Vibe
+              {COPY.profilePanel.vibe}
             </span>
             {profile?.vibe ? (
               <Badge variant="outline" size="sm" className="font-micro text-[#2A2521]">Saved</Badge>
@@ -230,7 +237,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
             )}
           </div>
           <div className="mt-2 font-serif text-base font-normal text-[#2A2521]">
-            {profile?.vibe || 'Not yet set'}
+            {profile?.vibe || COPY.profilePanel.notSet}
           </div>
         </div>
 
@@ -282,11 +289,8 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
           className="flex items-center gap-1.5 text-xs text-[#6B645E] hover:text-[#94512F] cursor-pointer transition-colors"
         >
           <RotateCcw className="w-3.5 h-3.5" strokeWidth={1.5} />
-          <span>{isResetting ? 'Resetting...' : 'Restart'}</span>
+          <span>{isResetting ? 'Restarting...' : 'Restart conversation'}</span>
         </button>
-        <span className="font-micro text-[10px] text-[#6B645E] tracking-[0.15em] uppercase">
-          DEMO MODE
-        </span>
       </div>
     </aside>
   );

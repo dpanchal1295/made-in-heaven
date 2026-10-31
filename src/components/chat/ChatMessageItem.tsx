@@ -7,6 +7,7 @@ import { NeedsConfirmation } from '@/lib/maya/schemas';
 import { StructuredCard } from './StructuredCard';
 import { Chip, Button } from '@/components/ui';
 import { AlertCircle, Check, X } from 'lucide-react';
+import { Logo } from '@/components/common/Logo';
 
 interface ChatMessageItemProps {
   message: Message;
@@ -40,16 +41,22 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     return (
       <div className="flex flex-col space-y-2 mb-6 max-w-2xl">
         <div className="flex-1">
-          {/* Header Label: Small terracotta label "MAYA" (no avatar bubble, no robot icon) */}
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="font-micro text-[11px] text-[#94512F] tracking-[0.2em] uppercase font-semibold">
-              MAYA
+          {/* Header Label: Diya mark with Maya's name */}
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-5 h-5 flex items-center justify-center shrink-0">
+              <Logo size="sm" markOnly variant="dark" />
+            </div>
+            <span className="font-serif font-medium text-sm text-[#2A2521]">
+              Maya
             </span>
-            <span className="text-[11px] text-[#6B645E]">{timeStr}</span>
+            <span className="font-micro text-[10px] text-[#94512F] uppercase tracking-[0.15em] bg-[#F1EDE8] px-1.5 py-0.2">
+              Planner
+            </span>
+            <span className="text-[11px] text-[#6B645E] ml-1">{timeStr}</span>
           </div>
 
-          {/* Message Bubble: Cream card (#FCFBF8) with hairline border #E4DED6 */}
-          <div className="bg-[#FCFBF8] border border-[#E4DED6] p-5 text-sm text-[#2A2521] leading-relaxed">
+          {/* Message Bubble */}
+          <div className="bg-[#FCFBF8] border border-[#E4DED6] p-5 text-sm text-[#2A2521] leading-relaxed shadow-xs">
             <SafeMarkdown content={message.text} />
             {message.planPartSaved && (
               <div className="mt-3 pt-3 border-t border-[#E4DED6] flex items-center gap-2">
@@ -117,7 +124,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             </div>
           )}
 
-          {/* Quick Replies: hairline outline chips, square, charcoal text, soft beige hover */}
+          {/* Quick Replies */}
           {isLatestMayaMessage && quickReplies && quickReplies.length > 0 && (
             <div className="mt-4">
               <div className="font-micro text-[10px] text-[#6B645E] tracking-[0.2em] uppercase mb-2">
@@ -140,16 +147,16 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     );
   }
 
-  // Member (User) Message Bubble: Solid charcoal #2A2521 card with white text
+  // Member (User) Message Bubble: Aligned right
   return (
     <div className="flex flex-col items-end mb-6 ml-auto max-w-xl">
       <div className="flex items-center gap-2 mb-1.5 mr-1">
         <span className="text-[11px] text-[#6B645E]">{timeStr}</span>
-        <span className="font-micro text-[10px] text-[#2A2521] uppercase tracking-[0.15em]">
+        <span className="font-micro text-[10px] text-[#2A2521] uppercase tracking-[0.15em] font-semibold">
           YOU
         </span>
       </div>
-      <div className="bg-[#2A2521] text-white px-5 py-3.5 text-sm leading-relaxed border border-[#2A2521]">
+      <div className="bg-[#2A2521] text-white px-5 py-3.5 text-sm leading-relaxed border border-[#2A2521] shadow-xs">
         {message.text}
       </div>
     </div>

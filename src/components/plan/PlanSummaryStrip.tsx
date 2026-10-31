@@ -1,16 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { formatINR } from '@/lib/utils/format';
 import { WeddingPlan } from '@/types/firestore';
 import { Badge, Button, Modal } from '@/components/ui';
-import { Clock, Wallet, Users, AlertCircle, Trash2 } from 'lucide-react';
+import { Clock, Wallet, Users, AlertCircle, Trash2, Sparkles } from 'lucide-react';
+import { COPY } from '@/config/copy';
 
-/**
- * Reads a wedding date like "2026-12-18" as a LOCAL calendar day.
- * new Date("2026-12-18") treats it as midnight UTC, which shows as
- * 17 December in the Americas. This keeps it 18 December everywhere.
- */
 function parseLocalDate(value: string | null | undefined): Date | null {
   if (!value) return null;
   const m = value.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
@@ -19,14 +16,12 @@ function parseLocalDate(value: string | null | undefined): Date | null {
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
-/** "2026-12-18" -> "18 December 2026" */
 function formatLocalDate(value: string | null | undefined): string {
   const d = parseLocalDate(value);
-  if (!d) return value || '';
+  if (!d) return COPY.plan.summaryStrip.notSet;
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-/** Whole days from today until the wedding (0 if it has passed) */
 function daysUntil(value: string | null | undefined): number | null {
   const d = parseLocalDate(value);
   if (!d) return null;
@@ -35,18 +30,17 @@ function daysUntil(value: string | null | undefined): number | null {
   return Math.max(0, Math.round((d.getTime() - today.getTime()) / 86400000));
 }
 
-/** Short "book by" label for the Urgent card, e.g. "8-10 months before venue" -> "8-10 months" */
 function shortBookBy(bookBy: string | undefined): string {
   if (!bookBy) return 'Soon';
   return bookBy.split(' ').slice(0, 2).join(' ');
 }
 
 export interface PlanSummaryStripProps {
-  weddingDate: string;
-  totalBudget: number;
-  budgetRange: { low: number; high: number };
-  guestCount: number;
-  city: string;
+  weddingDate: string | null;
+  totalBudget: number | null;
+  budgetRange: { low: number; high: number } | null;
+  guestCount: number | null;
+  city: string | null;
   plan: WeddingPlan | null;
   canSeeBudget?: boolean;
   onClearPlan: () => Promise<void>;
@@ -74,9 +68,12 @@ export function PlanSummaryStrip({
   const [isClearing, setIsClearing] = useState(false);
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
 
-  // Computed in the browser only, so server and browser never disagree
   useEffect(() => {
-    setDaysLeft(daysUntil(weddingDate));
+    if (weddingDate) {
+      setDaysLeft(daysUntil(weddingDate));
+    } else {
+      setDaysLeft(null);
+    }
   }, [weddingDate]);
 
   const formattedDate = formatLocalDate(weddingDate);
@@ -115,7 +112,7 @@ export function PlanSummaryStrip({
   return (
     <div className="bg-white border-b border-[#E4DED6] px-4 sm:px-8 py-5">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-        {/* Core Wedding Metrics Grid */}
+        {/* Core Celebration Metrics Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1">
           {/* 1. Countdown */}
           <div className="bg-[#FCFBF8] rounded-none p-4 border border-[#E4DED6]">
@@ -130,7 +127,14 @@ export function PlanSummaryStrip({
               <span className="font-micro text-[10px] text-[#6B645E] tracking-[0.1em] uppercase">days</span>
             </div>
             <div className="text-[11px] text-[#6B645E] truncate mt-0.5">
-              {formattedDate}
+              {weddingDate ? (
+                formattedDate
+              ) : (
+                <Link href="/chat" className="text-[#94512F] hover:underline flex items-center gap-1">
+                  <span>{COPY.plan.summaryStrip.notSet}</span>
+                  <Sparkles className="w-2.5 h-2.5" />
+                </Link>
+              )}
             </div>
           </div>
 
@@ -141,21 +145,32 @@ export function PlanSummaryStrip({
               <span className="font-micro text-[10px] tracking-[0.2em] uppercase">BUDGET PLAN</span>
             </div>
             {canSeeBudget ? (
-              <>
-                <div className="mt-1">
-                  <span className="font-serif text-2xl sm:text-3xl font-normal text-[#2A2521]">
-                    {formatINR(totalBudget)}
+              totalBudget ? (
+                <>
+                  <div className="mt-1">
+                    <span className="font-serif text-2xl sm:text-3xl font-normal text-[#2A2521]">
+                      {formatINR(totalBudget)}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[#6B645E] truncate mt-0.5">
+                    {budgetRange ? `Range: ${formatINR(budgetRange.low)} – ${formatINR(budgetRange.high)}` : 'Estimated'}
+                  </div>
+                </>
+              ) : (
+                <div className="mt-1.5">
+                  <span className="font-serif text-sm font-normal text-[#6B645E] block">
+                    {COPY.plan.summaryStrip.notSet}
                   </span>
+                  <Link href="/chat" className="text-[11px] text-[#94512F] hover:underline block mt-0.5">
+                    Ask Maya to set budget →
+                  </Link>
                 </div>
-                <div className="text-[11px] text-[#6B645E] truncate mt-0.5">
-                  Range: {formatINR(budgetRange.low)} – {formatINR(budgetRange.high)}
-                </div>
-              </>
+              )
             ) : (
               <>
                 <div className="mt-1">
                   <span className="font-serif text-base font-normal text-[#6B645E]">
-                    Private to couple
+                    Private to hosts
                   </span>
                 </div>
                 <div className="text-[11px] text-[#6B645E] truncate mt-0.5">
@@ -173,12 +188,16 @@ export function PlanSummaryStrip({
             </div>
             <div className="mt-1 flex items-baseline gap-1.5">
               <span className="font-serif text-2xl sm:text-3xl font-normal text-[#2A2521]">
-                {guestCount}
+                {guestCount ?? '—'}
               </span>
               <span className="font-micro text-[10px] text-[#6B645E] tracking-[0.1em] uppercase">guests</span>
             </div>
             <div className="text-[11px] text-[#6B645E] truncate mt-0.5">
-              {city} • Estimated
+              {city ? `${city} • Estimated` : (
+                <Link href="/chat" className="text-[#94512F] hover:underline">
+                  City not set →
+                </Link>
+              )}
             </div>
           </div>
 
@@ -249,7 +268,8 @@ export function PlanSummaryStrip({
               variant="secondary"
               size="sm"
               onClick={() => setShowClearConfirm(true)}
-              leftIcon={<Trash2 className="w-3.5 h-3.5 text-[#6B645E]" strokeWidth={1.5} />}
+              className="border-[#E4DED6] text-[#6B645E] hover:border-[#94512F] hover:text-[#94512F]"
+              leftIcon={<Trash2 className="w-3.5 h-3.5" />}
             >
               Clear
             </Button>
@@ -257,38 +277,35 @@ export function PlanSummaryStrip({
         </div>
       </div>
 
-      {/* Confirmation Modal for Clearing Plan */}
+      {/* Clear Confirmation Modal */}
       <Modal
         isOpen={showClearConfirm}
         onClose={() => setShowClearConfirm(false)}
-        title="Clear Wedding Plan?"
-        description="This will clear all 6 plan tabs (budget, timeline, checklist, attire, decor, palette) for this Home."
-        icon={<AlertCircle className="w-5 h-5 text-[#94512F]" strokeWidth={1.5} />}
-        footer={
-          <div className="flex items-center gap-2.5">
+        title="Clear Celebration Plan?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[#6B645E] leading-relaxed">
+            This will clear your generated timeline, checklist ticks, palette, and style sections so you can start fresh.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setShowClearConfirm(false)}
-              disabled={isClearing}
             >
               Cancel
             </Button>
             <Button
-              variant="danger"
+              variant="primary"
               size="sm"
-              onClick={handleClear}
               isLoading={isClearing}
-              disabled={isClearing}
+              onClick={handleClear}
+              className="bg-[#94512F] hover:bg-[#7D4224] text-white"
             >
               Yes, Clear Plan
             </Button>
           </div>
-        }
-      >
-        <p className="text-xs text-[#6B645E] leading-relaxed">
-          You can regenerate any section at any time by speaking to Maya in chat or pressing the generate buttons on each tab.
-        </p>
+        </div>
       </Modal>
     </div>
   );

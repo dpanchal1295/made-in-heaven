@@ -246,11 +246,11 @@ export default function PlanPage() {
     }
   };
 
-  const weddingDate = profile?.date || '2026-12-18';
-  const totalBudget = budget?.planning_value || budget?.total || 800000;
-  const budgetRange = budget?.range || { low: 700000, high: 900000 };
-  const guestCount = profile?.guest_count?.planning_value || profile?.guest_count?.estimate || 300;
-  const city = profile?.city || 'Pune';
+  const weddingDate = profile?.date || null;
+  const totalBudget = budget?.planning_value || budget?.total || null;
+  const budgetRange = budget?.range || null;
+  const guestCount = profile?.guest_count?.planning_value || profile?.guest_count?.estimate || null;
+  const city = profile?.city || null;
   const canSeeBudget = user?.canSeeBudget ?? true;
 
   const isCouple = user?.permission === 'couple';

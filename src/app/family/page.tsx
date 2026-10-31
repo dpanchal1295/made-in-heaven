@@ -17,8 +17,8 @@ export default function FamilyPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [ideaCounts, setIdeaCounts] = useState<Record<string, number>>({});
-  const [inviteCode, setInviteCode] = useState('MIH-2026');
-  const [homeName, setHomeName] = useState('Aarav and Diya');
+  const [inviteCode, setInviteCode] = useState('');
+  const [homeName, setHomeName] = useState('Our Celebration');
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingMember, setIsUpdatingMember] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);

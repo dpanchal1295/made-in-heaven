@@ -23,12 +23,19 @@ export async function GET(req: NextRequest) {
     }
 
     const storage = getWeddingStorage();
-    const [home, budget, members, rooms] = await Promise.all([
+    const [home, budget, members, rooms, plan, decisions] = await Promise.all([
       storage.getHome(session.homeId),
       storage.getBudget(session.homeId),
       storage.getMembers(session.homeId),
       storage.getRooms(session.homeId),
+      storage.getPlan(session.homeId),
+      storage.getDecisions(session.homeId),
     ]);
+
+    // Gather recent ideas across rooms
+    const allIdeas = (
+      await Promise.all(rooms.map((r) => storage.getIdeas(session.homeId, r.id)))
+    ).flat().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
 
     const onboardingStatus = getOnboardingStatus(home.profile, budget);
 
@@ -38,6 +45,9 @@ export async function GET(req: NextRequest) {
       speaker: session.member,
       members,
       rooms,
+      plan,
+      decisions,
+      recentIdeas: allIdeas,
       budget: session.member.canSeeBudget ? budget : null,
       onboardingStatus,
     });

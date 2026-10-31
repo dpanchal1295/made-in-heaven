@@ -8,6 +8,7 @@ import { NeedsConfirmation } from '@/lib/maya/schemas';
 import { PlanPartSource } from '@/types/firestore';
 import { getSession } from '@/lib/auth/session';
 import { checkRateLimit } from '@/lib/security/rateLimit';
+import { generateFirstMessage } from '@/lib/maya/firstMessage';
 
 const DEFAULT_ROOM_ID = 'onboarding';
 
@@ -64,19 +65,12 @@ export async function GET(req: NextRequest) {
 
     // If room is empty, create initial welcoming Maya message
     if (messages.length === 0) {
-      const initialEnvelope = {
-        reply: "Namaste! I'm Maya, your personal wedding manager at Made in Heaven. I am so delighted to celebrate your love and help plan this magical journey with you!\n\nLet's begin by building your wedding foundation together, one detail at a time. **When are you thinking of having the wedding?** (Or what month / season are you picturing?)",
-        spoken_reply: "Namaste! I'm Maya, your wedding manager. When are you thinking of getting married?",
-        quick_replies: [
-          'Late 2026 (Nov - Dec)',
-          'Early 2027 (Jan - Feb)',
-          'Spring 2027 (Mar - Apr)',
-          'Winter 2027',
-        ],
-        profile_updates: [],
-        needs_confirmation: [],
-        structured: { type: 'none', data: null },
-      };
+      const initialEnvelope = generateFirstMessage(
+        home.name || 'Your Celebration',
+        home.profile || {},
+        budget,
+        speaker
+      );
 
       const initialMessage = await storage.addMessage(homeId, roomId, {
         authorType: 'maya',
