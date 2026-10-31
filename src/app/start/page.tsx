@@ -1,12 +1,59 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/common/Logo';
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
-import { ArrowRight, ArrowLeft, Heart, Cake, Flag } from 'lucide-react';
+import { Photo } from '@/components/common/Photo';
+import { Eyebrow } from '@/components/common/Eyebrow';
+import { Button } from '@/components/ui';
+import { ArrowRight, ArrowLeft, Calendar, MapPin, User, Sparkles, KeyRound } from 'lucide-react';
 import { EventType } from '@/types/firestore';
+import { ImageKey } from '@/config/images';
+
+interface CelebrationOption {
+  type: EventType;
+  eyebrow: string;
+  title: string;
+  description: string;
+  imageKey: ImageKey;
+  accentDark: string;
+  accentPrimary: string;
+  badgeBg: string;
+}
+
+const CELEBRATION_OPTIONS: CelebrationOption[] = [
+  {
+    type: 'wedding',
+    eyebrow: 'WEDDING',
+    title: 'Indian Wedding',
+    description: 'Mehendi to reception, itemized rupee budget, attire, rituals, and family consensus.',
+    imageKey: 'hero',
+    accentDark: '#94512F',
+    accentPrimary: '#A8603E',
+    badgeBg: 'rgba(168, 96, 62, 0.1)',
+  },
+  {
+    type: 'birthday',
+    eyebrow: 'BIRTHDAY',
+    title: 'Milestone Birthday',
+    description: '1st Ayushya Homam, 18th milestone, or 50th/60th Jubilee with catering, decor, and cake.',
+    imageKey: 'birthdayHero',
+    accentDark: '#863A57',
+    accentPrimary: '#9B4A6A',
+    badgeBg: 'rgba(155, 74, 106, 0.1)',
+  },
+  {
+    type: 'community',
+    eyebrow: 'COMMUNITY',
+    title: 'Community Festival',
+    description: 'Garba, Ganesh Utsav, Diwali Mela, society gatherings, crowd logistics, and committees.',
+    imageKey: 'communityHero',
+    accentDark: '#8E4A00',
+    accentPrimary: '#A35700',
+    badgeBg: 'rgba(163, 87, 0, 0.1)',
+  },
+];
 
 function StartForm() {
   const router = useRouter();
@@ -40,7 +87,7 @@ function StartForm() {
   const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
-  // Active form view ('select' | 'create' | 'join')
+  // Active form view: step 1 ('select'), step 2 ('create'), or 'join'
   const [activeView, setActiveView] = useState<'select' | 'create' | 'join'>('select');
 
   // Check auth: if unauthenticated, redirect to signin with return URL
@@ -63,6 +110,28 @@ function StartForm() {
       setActiveView('create');
     }
   }, [typeParam]);
+
+  const activeOption = useMemo(
+    () => CELEBRATION_OPTIONS.find((opt) => opt.type === selectedEventType) || CELEBRATION_OPTIONS[0],
+    [selectedEventType]
+  );
+
+  // Compute live celebration title for preview
+  const celebrationTitlePreview = useMemo(() => {
+    if (selectedEventType === 'birthday') {
+      if (!birthdayCelebrant.trim()) return 'Celebrant Birthday';
+      return birthdayMilestone.trim()
+        ? `${birthdayCelebrant.trim()} (${birthdayMilestone.trim()})`
+        : `${birthdayCelebrant.trim()}'s Birthday`;
+    }
+    if (selectedEventType === 'community') {
+      if (!communityGroupName.trim()) return 'Community Gathering';
+      return communityOccasion.trim()
+        ? `${communityGroupName.trim()} • ${communityOccasion.trim()}`
+        : communityGroupName.trim();
+    }
+    return weddingCoupleNames.trim() || 'Aarav & Diya';
+  }, [selectedEventType, birthdayCelebrant, birthdayMilestone, communityGroupName, communityOccasion, weddingCoupleNames]);
 
   const handleCreateHome = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +166,6 @@ function StartForm() {
 
     setIsCreatingHome(true);
     try {
-      // If user provided or changed their display name, save it
       if (hostDisplayName.trim() && hostDisplayName.trim() !== user?.name) {
         await fetch('/api/settings', {
           method: 'POST',
@@ -171,358 +239,459 @@ function StartForm() {
   };
 
   return (
-    <div className="w-full max-w-2xl space-y-8" data-event-type={selectedEventType}>
-      {/* Header */}
-      <div className="text-center space-y-2">
+    <div className="w-full max-w-5xl mx-auto space-y-10" data-event-type={selectedEventType}>
+      {/* Brand Header */}
+      <div className="text-center space-y-3">
         <Logo href="/welcome" size="lg" className="justify-center" />
-        <h1 className="font-serif text-3xl sm:text-4xl font-normal text-[#2A2521] mt-2">
+        <h1 className="font-serif text-3xl sm:text-5xl font-normal text-[#2A2521] tracking-tight">
           How would you like to start?
         </h1>
-        <p className="font-micro text-xs text-[#6B645E] uppercase tracking-[0.15em] mt-1">
-          CREATE A CELEBRATION HOME OR JOIN WITH AN INVITE CODE
+        <p className="font-micro text-xs text-[#6B645E] uppercase tracking-[0.18em]">
+          CREATE A CELEBRATION BLUEPRINT OR JOIN WITH AN INVITE CODE
         </p>
       </div>
 
-      {/* Main Choice */}
+      {/* ============================================================ */}
+      {/* STEP 1: THREE LARGE PHOTO CARDS                              */}
+      {/* ============================================================ */}
       {activeView === 'select' && (
-        <div className="space-y-6">
+        <div className="space-y-10">
           <div className="text-center">
-            <span className="font-micro text-[11px] uppercase tracking-[0.2em] text-[#94512F] block mb-2 font-medium">
-              STEP 1: CHOOSE CELEBRATION
-            </span>
+            <Eyebrow className="justify-center">STEP 1 OF 2 · SELECT CELEBRATION</Eyebrow>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Wedding Card */}
-            <div
-              onClick={() => {
-                setSelectedEventType('wedding');
-                setActiveView('create');
-              }}
-              className="bg-white p-6 border border-[#E4DED6] hover:border-[#2A2521] transition-all cursor-pointer flex flex-col justify-between group"
-            >
-              <div className="space-y-3">
-                <div className="w-10 h-10 border border-[#E4DED6] bg-[#F1EDE8] flex items-center justify-center text-[#94512F]">
-                  <Heart className="w-4 h-4" strokeWidth={1.5} />
-                </div>
-                <div>
-                  <h2 className="font-serif text-lg font-medium text-[#2A2521]">
-                    Wedding
-                  </h2>
-                  <p className="text-xs text-[#6B645E] mt-1.5 leading-relaxed">
-                    Mehendi to reception, itemized rupee budget, and family voting.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6 pt-3 border-t border-[#E4DED6] flex items-center justify-between text-xs font-micro uppercase tracking-[0.15em] text-[#94512F]">
-                <span>Plan Wedding</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {CELEBRATION_OPTIONS.map((opt) => (
+              <div
+                key={opt.type}
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setSelectedEventType(opt.type);
+                  setActiveView('create');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedEventType(opt.type);
+                    setActiveView('create');
+                  }
+                }}
+                className="group relative bg-[#FCFBF8] border border-[#E4DED6] hover:border-[#2A2521] transition-all duration-300 flex flex-col overflow-hidden text-left cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-[#2A2521] focus:ring-offset-2"
+              >
+                {/* Large Photo Header */}
+                <div className="relative w-full h-52 sm:h-60 overflow-hidden bg-[#F1EDE8]">
+                  <Photo
+                    imageKey={opt.imageKey}
+                    aspectRatio="photo"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#2A2521]/75 via-[#2A2521]/20 to-transparent" />
+                  
+                  {/* Badge */}
+                  <div className="absolute top-4 left-4">
+                    <span
+                      className="font-micro text-[10px] tracking-[0.2em] uppercase px-2.5 py-1 text-white bg-black/60 backdrop-blur-xs border border-white/20 font-medium"
+                    >
+                      {opt.eyebrow}
+                    </span>
+                  </div>
 
-            {/* Birthday Card */}
-            <div
-              onClick={() => {
-                setSelectedEventType('birthday');
-                setActiveView('create');
-              }}
-              className="bg-white p-6 border border-[#E4DED6] hover:border-[#2A2521] transition-all cursor-pointer flex flex-col justify-between group"
-            >
-              <div className="space-y-3">
-                <div className="w-10 h-10 border border-[#E4DED6] bg-[#F1EDE8] flex items-center justify-center text-[#863A57]">
-                  <Cake className="w-4 h-4" strokeWidth={1.5} />
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <h2 className="font-serif text-2xl font-normal text-white drop-shadow-xs">
+                      {opt.title}
+                    </h2>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="font-serif text-lg font-medium text-[#2A2521]">
-                    Birthday
-                  </h2>
-                  <p className="text-xs text-[#6B645E] mt-1.5 leading-relaxed">
-                    1st, 18th, 50th, 60th milestone gatherings, dinner party & return gifts.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6 pt-3 border-t border-[#E4DED6] flex items-center justify-between text-xs font-micro uppercase tracking-[0.15em] text-[#863A57]">
-                <span>Plan Birthday</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
 
-            {/* Community Event Card */}
-            <div
-              onClick={() => {
-                setSelectedEventType('community');
-                setActiveView('create');
-              }}
-              className="bg-white p-6 border border-[#E4DED6] hover:border-[#2A2521] transition-all cursor-pointer flex flex-col justify-between group"
-            >
-              <div className="space-y-3">
-                <div className="w-10 h-10 border border-[#E4DED6] bg-[#F1EDE8] flex items-center justify-center text-[#1B4332]">
-                  <Flag className="w-4 h-4" strokeWidth={1.5} />
-                </div>
-                <div>
-                  <h2 className="font-serif text-lg font-medium text-[#2A2521]">
-                    Community Event
-                  </h2>
-                  <p className="text-xs text-[#6B645E] mt-1.5 leading-relaxed">
-                    Garba, Ganesh Utsav, Diwali Mela, crowd logistics & sponsors.
+                {/* Content body */}
+                <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
+                  <p className="font-sans text-xs sm:text-sm text-[#6B645E] leading-relaxed">
+                    {opt.description}
                   </p>
+
+                  <div className="pt-4 border-t border-[#E4DED6] flex items-center justify-between">
+                    <span
+                      className="font-micro text-xs uppercase tracking-[0.18em] font-medium transition-colors"
+                      style={{ color: opt.accentDark }}
+                    >
+                      Plan {opt.title.split(' ')[0]}
+                    </span>
+                    <div
+                      className="w-8 h-8 border border-[#E4DED6] flex items-center justify-center bg-white group-hover:border-[#2A2521] transition-colors"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5 text-[#2A2521] group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="mt-6 pt-3 border-t border-[#E4DED6] flex items-center justify-between text-xs font-micro uppercase tracking-[0.15em] text-[#1B4332]">
-                <span>Plan Community</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* Join Home Divider Option */}
-          <div className="pt-4 border-t border-[#E4DED6] text-center">
+          {/* Quiet Secondary Join Option */}
+          <div className="pt-8 border-t border-[#E4DED6] text-center">
             <button
               type="button"
               onClick={() => setActiveView('join')}
-              className="text-xs text-[#6B645E] hover:text-[#2A2521] font-medium tracking-wide uppercase font-micro hover:underline cursor-pointer"
+              className="inline-flex items-center gap-2 font-micro text-xs text-[#6B645E] hover:text-[#2A2521] uppercase tracking-[0.18em] transition-colors cursor-pointer focus:outline-hidden focus:underline py-2 px-3"
             >
-              Joining an existing family celebration? Enter invite code →
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Already planning with family? Join with an invite code →</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* View: Create Home Form */}
+      {/* ============================================================ */}
+      {/* STEP 2: DETAILS FORM WITH LIVE BLUEPRINT PREVIEW CARD        */}
+      {/* ============================================================ */}
       {activeView === 'create' && (
-        <Card className="border border-[#E4DED6] bg-white p-8 space-y-6">
-          <CardHeader className="p-0 pb-4 border-b border-[#E4DED6]">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl capitalize">
-                Create {selectedEventType} Home
-              </CardTitle>
-              <button
-                type="button"
-                onClick={() => setActiveView('select')}
-                className="font-micro text-xs text-[#6B645E] hover:text-[#2A2521] uppercase tracking-[0.15em] flex items-center gap-1 cursor-pointer"
-              >
-                <ArrowLeft className="w-3 h-3" />
-                <span>Change type</span>
-              </button>
-            </div>
-            <CardDescription className="text-xs text-[#6B645E]">
-              Once created, you&apos;ll meet Maya to guide your schedule, budget, and family collaboration.
-            </CardDescription>
-          </CardHeader>
+        <div className="space-y-8">
+          <div className="flex items-center justify-between border-b border-[#E4DED6] pb-4">
+            <Eyebrow>STEP 2 OF 2 · CELEBRATION DETAILS</Eyebrow>
+            <button
+              type="button"
+              onClick={() => setActiveView('select')}
+              className="font-micro text-xs text-[#6B645E] hover:text-[#2A2521] uppercase tracking-[0.16em] flex items-center gap-1.5 cursor-pointer focus:outline-hidden focus:underline"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Change celebration type</span>
+            </button>
+          </div>
 
-          <CardContent className="p-0 pt-2">
-            <form onSubmit={handleCreateHome} className="space-y-4">
-              {createError && (
-                <div className="p-3 bg-[#F1EDE8] border border-[var(--accent-dark)]/40 text-xs text-[var(--accent-dark)]">
-                  {createError}
-                </div>
-              )}
-
-              {/* 1. Host Name (Always asked) */}
-              <div className="space-y-1.5">
-                <label htmlFor="host-name" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                  Your Name (Host / Organiser)
-                </label>
-                <input
-                  id="host-name"
-                  type="text"
-                  placeholder="e.g. Rohan Sharma"
-                  value={hostDisplayName}
-                  onChange={(e) => setHostDisplayName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                  required
-                />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Form Column (7 cols) */}
+            <div className="lg:col-span-7 bg-white border border-[#E4DED6] p-6 sm:p-8 space-y-6">
+              <div className="border-b border-[#E4DED6] pb-4">
+                <span
+                  className="font-micro text-[11px] uppercase tracking-[0.2em] font-medium block mb-1"
+                  style={{ color: activeOption.accentDark }}
+                >
+                  {activeOption.eyebrow} BLUEPRINT
+                </span>
+                <h2 className="font-serif text-2xl sm:text-3xl font-normal text-[#2A2521]">
+                  Tell Maya about your {selectedEventType}
+                </h2>
+                <p className="text-xs text-[#6B645E] mt-1 leading-relaxed">
+                  These details seed your celebration Home. Maya will personalize budget, timelines, and questions accordingly.
+                </p>
               </div>
 
-              {/* 2. Birthday Specific Inputs */}
-              {selectedEventType === 'birthday' && (
-                <>
-                  <div className="space-y-1.5">
-                    <label htmlFor="birthday-celebrant" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                      Who is the birthday for?
-                    </label>
-                    <input
-                      id="birthday-celebrant"
-                      type="text"
-                      placeholder="e.g. Arjun, my son or Dad"
-                      value={birthdayCelebrant}
-                      onChange={(e) => setBirthdayCelebrant(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                      required
-                    />
+              <form onSubmit={handleCreateHome} className="space-y-5">
+                {createError && (
+                  <div
+                    role="alert"
+                    className="p-3.5 bg-[#F1EDE8] border border-[var(--accent-dark)]/40 text-xs text-[var(--accent-dark)]"
+                  >
+                    {createError}
                   </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="birthday-milestone" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                      Age or Milestone
-                    </label>
-                    <input
-                      id="birthday-milestone"
-                      type="text"
-                      placeholder="e.g. 1st Birthday, 18th, or 60th Shashti Poorthi"
-                      value={birthdayMilestone}
-                      onChange={(e) => setBirthdayMilestone(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                    />
-                  </div>
-                </>
-              )}
+                )}
 
-              {/* 3. Community Specific Inputs */}
-              {selectedEventType === 'community' && (
-                <>
-                  <div className="space-y-1.5">
-                    <label htmlFor="community-group" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                      Organising Group / Society Name
-                    </label>
-                    <input
-                      id="community-group"
-                      type="text"
-                      placeholder="e.g. Sahyadri Heights Cultural Committee"
-                      value={communityGroupName}
-                      onChange={(e) => setCommunityGroupName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="community-occasion" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                      Occasion / Festival
-                    </label>
-                    <input
-                      id="community-occasion"
-                      type="text"
-                      placeholder="e.g. Navratri Garba Utsav or Diwali Mela"
-                      value={communityOccasion}
-                      onChange={(e) => setCommunityOccasion(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* 4. Wedding Specific Inputs */}
-              {selectedEventType === 'wedding' && (
+                {/* Host Name Field */}
                 <div className="space-y-1.5">
-                  <label htmlFor="wedding-couple" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                    Couple Names
+                  <label
+                    htmlFor="host-name"
+                    className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]"
+                  >
+                    Your Name (Host / Organiser) *
                   </label>
                   <input
-                    id="wedding-couple"
+                    id="host-name"
                     type="text"
-                    placeholder="e.g. Aarav & Diya"
-                    value={weddingCoupleNames}
-                    onChange={(e) => setWeddingCoupleNames(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                    placeholder="e.g. Rohan Sharma"
+                    value={hostDisplayName}
+                    onChange={(e) => setHostDisplayName(e.target.value)}
+                    className="w-full px-4 py-3 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
                     required
                   />
                 </div>
-              )}
 
-              {/* 5. Date */}
-              <div className="space-y-1.5">
-                <label htmlFor="date" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                  Target Date or Month
-                </label>
-                <input
-                  id="date"
-                  type="text"
-                  placeholder="e.g. 18 December 2026 or December 2026"
-                  value={celebrationDate}
-                  onChange={(e) => setCelebrationDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                />
-              </div>
+                {/* Wedding Specific */}
+                {selectedEventType === 'wedding' && (
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="wedding-couple"
+                      className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]"
+                    >
+                      Couple Names *
+                    </label>
+                    <input
+                      id="wedding-couple"
+                      type="text"
+                      placeholder="e.g. Aarav & Diya"
+                      value={weddingCoupleNames}
+                      onChange={(e) => setWeddingCoupleNames(e.target.value)}
+                      className="w-full px-4 py-3 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                      required
+                    />
+                  </div>
+                )}
 
-              {/* 6. City / Location */}
-              <div className="space-y-1.5">
-                <label htmlFor="city" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                  {selectedEventType === 'community' ? 'City / Society Ground' : 'City'}
-                </label>
-                <input
-                  id="city"
-                  type="text"
-                  placeholder="e.g. Pune, Bengaluru, or Mumbai"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                />
-              </div>
+                {/* Birthday Specific */}
+                {selectedEventType === 'birthday' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="birthday-celebrant"
+                        className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]"
+                      >
+                        Who is the birthday for? *
+                      </label>
+                      <input
+                        id="birthday-celebrant"
+                        type="text"
+                        placeholder="e.g. Arjun, my son or Dad"
+                        value={birthdayCelebrant}
+                        onChange={(e) => setBirthdayCelebrant(e.target.value)}
+                        className="w-full px-4 py-3 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="birthday-milestone"
+                        className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]"
+                      >
+                        Age or Milestone
+                      </label>
+                      <input
+                        id="birthday-milestone"
+                        type="text"
+                        placeholder="e.g. 1st Birthday, 18th Milestone, or 60th Shashti Poorthi"
+                        value={birthdayMilestone}
+                        onChange={(e) => setBirthdayMilestone(e.target.value)}
+                        className="w-full px-4 py-3 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                      />
+                    </div>
+                  </>
+                )}
 
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  size="md"
-                  disabled={isCreatingHome}
-                  className="w-full min-h-[48px] bg-[var(--accent-primary)] hover:bg-[var(--accent-dark)] text-white"
-                >
-                  <span>{isCreatingHome ? 'Creating Home...' : 'Create Home & Meet Maya'}</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-2" strokeWidth={1.5} />
-                </Button>
+                {/* Community Specific */}
+                {selectedEventType === 'community' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="community-group"
+                        className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]"
+                      >
+                        Organising Committee / Society Name *
+                      </label>
+                      <input
+                        id="community-group"
+                        type="text"
+                        placeholder="e.g. Sahyadri Heights Cultural Committee"
+                        value={communityGroupName}
+                        onChange={(e) => setCommunityGroupName(e.target.value)}
+                        className="w-full px-4 py-3 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="community-occasion"
+                        className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]"
+                      >
+                        Occasion / Festival
+                      </label>
+                      <input
+                        id="community-occasion"
+                        type="text"
+                        placeholder="e.g. Navratri Garba Utsav or Diwali Mela"
+                        value={communityOccasion}
+                        onChange={(e) => setCommunityOccasion(e.target.value)}
+                        className="w-full px-4 py-3 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Date */}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="celebration-date"
+                    className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]"
+                  >
+                    Target Date or Month
+                  </label>
+                  <input
+                    id="celebration-date"
+                    type="text"
+                    placeholder="e.g. 18 December 2026 or December 2026"
+                    value={celebrationDate}
+                    onChange={(e) => setCelebrationDate(e.target.value)}
+                    className="w-full px-4 py-3 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                  />
+                </div>
+
+                {/* City */}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="celebration-city"
+                    className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]"
+                  >
+                    {selectedEventType === 'community' ? 'City / Society Ground' : 'City / Location'}
+                  </label>
+                  <input
+                    id="celebration-city"
+                    type="text"
+                    placeholder="e.g. Pune, Bengaluru, or Mumbai"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="w-full px-4 py-3 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                  />
+                </div>
+
+                <div className="pt-3">
+                  <Button
+                    type="submit"
+                    size="lg"
+                    disabled={isCreatingHome}
+                    className="w-full min-h-[50px] text-white flex items-center justify-center gap-2"
+                    style={{ backgroundColor: activeOption.accentDark }}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>{isCreatingHome ? 'Creating Celebration Blueprint...' : 'Create Home & Meet Maya'}</span>
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </form>
+            </div>
+
+            {/* Live Preview Card Column (5 cols) */}
+            <div className="lg:col-span-5 sticky top-8 space-y-4">
+              <div className="bg-[#FCFBF8] border border-[#E4DED6] overflow-hidden shadow-xs">
+                {/* Preview Image */}
+                <div className="relative w-full h-44 overflow-hidden bg-[#F1EDE8]">
+                  <Photo
+                    imageKey={activeOption.imageKey}
+                    aspectRatio="photo"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#2A2521]/80 via-transparent to-transparent" />
+                  <div className="absolute top-3 left-3">
+                    <span
+                      className="font-micro text-[10px] uppercase tracking-[0.2em] px-2.5 py-1 text-white bg-black/60 backdrop-blur-xs font-medium"
+                    >
+                      LIVE BLUEPRINT PREVIEW
+                    </span>
+                  </div>
+                  <div className="absolute bottom-3 left-3 right-3 text-white">
+                    <p className="font-micro text-[10px] uppercase tracking-[0.16em] text-white/80">
+                      {activeOption.eyebrow}
+                    </p>
+                    <p className="font-serif text-xl font-normal truncate">
+                      {celebrationTitlePreview}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Preview Details */}
+                <div className="p-5 space-y-4 bg-[#FCFBF8]">
+                  <div className="space-y-2.5 text-xs text-[#2A2521]">
+                    <div className="flex items-center gap-2.5 text-[#6B645E]">
+                      <User className="w-3.5 h-3.5 shrink-0 text-[#2A2521]" />
+                      <span className="font-micro uppercase tracking-wider text-[11px] text-[#6B645E]">Host:</span>
+                      <span className="font-medium text-[#2A2521] truncate">
+                        {hostDisplayName.trim() || 'You (Host)'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 text-[#6B645E]">
+                      <Calendar className="w-3.5 h-3.5 shrink-0 text-[#2A2521]" />
+                      <span className="font-micro uppercase tracking-wider text-[11px] text-[#6B645E]">Date:</span>
+                      <span className="font-medium text-[#2A2521] truncate">
+                        {celebrationDate.trim() || 'To be decided with Maya'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 text-[#6B645E]">
+                      <MapPin className="w-3.5 h-3.5 shrink-0 text-[#2A2521]" />
+                      <span className="font-micro uppercase tracking-wider text-[11px] text-[#6B645E]">City:</span>
+                      <span className="font-medium text-[#2A2521] truncate">
+                        {city.trim() || 'To be confirmed'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-[#F1EDE8] border-t border-[#E4DED6] text-[11px] text-[#6B645E] leading-relaxed">
+                    <p className="font-medium text-[#2A2521] mb-1">What happens next?</p>
+                    Maya greets you in your celebration space, clarifies your vision one question at a time, and builds an honest plan tailored to your budget.
+                  </div>
+                </div>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* View: Join Home Form */}
+      {/* ============================================================ */}
+      {/* JOIN HOME WITH INVITE CODE                                   */}
+      {/* ============================================================ */}
       {activeView === 'join' && (
-        <Card className="border border-[#E4DED6] bg-white p-8 space-y-6">
-          <CardHeader className="p-0 pb-4 border-b border-[#E4DED6]">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">
+        <div className="max-w-md mx-auto bg-white border border-[#E4DED6] p-8 space-y-6">
+          <div className="flex items-center justify-between border-b border-[#E4DED6] pb-4">
+            <div>
+              <span className="font-micro text-[11px] uppercase tracking-[0.2em] text-[#94512F] font-medium block">
+                FAMILY & COMMITTEE
+              </span>
+              <h2 className="font-serif text-2xl font-normal text-[#2A2521] mt-1">
                 Join with Invite Code
-              </CardTitle>
-              <button
-                type="button"
-                onClick={() => setActiveView('select')}
-                className="font-micro text-xs text-[#6B645E] hover:text-[#2A2521] uppercase tracking-[0.15em] flex items-center gap-1 cursor-pointer"
-              >
-                <ArrowLeft className="w-3 h-3" />
-                <span>Back</span>
-              </button>
+              </h2>
             </div>
-            <CardDescription className="text-xs text-[#6B645E]">
-              Enter the invite code shared with you by the host or committee.
-            </CardDescription>
-          </CardHeader>
+            <button
+              type="button"
+              onClick={() => setActiveView('select')}
+              className="font-micro text-xs text-[#6B645E] hover:text-[#2A2521] uppercase tracking-[0.16em] flex items-center gap-1 cursor-pointer focus:outline-hidden focus:underline"
+            >
+              <ArrowLeft className="w-3 h-3" />
+              <span>Back</span>
+            </button>
+          </div>
 
-          <CardContent className="p-0 pt-2">
-            <form onSubmit={handleJoinHome} className="space-y-4">
-              {joinError && (
-                <div className="p-3 bg-[#F1EDE8] border border-[var(--accent-dark)]/40 text-xs text-[var(--accent-dark)]">
-                  {joinError}
-                </div>
-              )}
+          <p className="text-xs text-[#6B645E] leading-relaxed">
+            Enter the 8-character invite code provided by the celebration host or committee organiser.
+          </p>
 
-              <div className="space-y-1.5">
-                <label htmlFor="invite-code" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
-                  Invite Code
-                </label>
-                <input
-                  id="invite-code"
-                  type="text"
-                  placeholder="e.g. MIH-2026"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                  className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-base tracking-widest font-mono text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden uppercase min-h-[44px]"
-                  required
-                />
+          <form onSubmit={handleJoinHome} className="space-y-4">
+            {joinError && (
+              <div
+                role="alert"
+                className="p-3 bg-[#F1EDE8] border border-[var(--accent-dark)]/40 text-xs text-[var(--accent-dark)]"
+              >
+                {joinError}
               </div>
+            )}
 
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  size="md"
-                  disabled={isJoining}
-                  className="w-full min-h-[48px] bg-[var(--accent-primary)] hover:bg-[var(--accent-dark)] text-white"
-                >
-                  <span>{isJoining ? 'Joining Home...' : 'Join Home'}</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-2" strokeWidth={1.5} />
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="invite-code"
+                className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.16em]"
+              >
+                Invite Code
+              </label>
+              <input
+                id="invite-code"
+                type="text"
+                placeholder="e.g. MIH-2026"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                className="w-full px-4 py-3 border border-[#E4DED6] bg-white text-base tracking-widest font-mono text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden uppercase min-h-[44px]"
+                required
+              />
+            </div>
+
+            <Button
+              type="submit"
+              size="lg"
+              disabled={isJoining}
+              className="w-full min-h-[48px] bg-[#94512F] hover:bg-[#A8603E] text-white flex items-center justify-center gap-2"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>{isJoining ? 'Joining Home...' : 'Join Celebration Home'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </form>
+        </div>
       )}
     </div>
   );
@@ -530,7 +699,7 @@ function StartForm() {
 
 export default function StartPage() {
   return (
-    <div className="min-h-screen w-full bg-[#FCFBF8] flex flex-col justify-center items-center py-12 px-4 sm:px-6 font-sans">
+    <div className="min-h-screen w-full bg-[#FCFBF8] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <Suspense fallback={<div className="text-xs text-[#6B645E]">Loading start options...</div>}>
         <StartForm />
       </Suspense>
