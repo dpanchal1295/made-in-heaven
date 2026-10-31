@@ -293,14 +293,19 @@ export async function callMaya(options: CallMayaOptions): Promise<MayaResponseEn
       }
 
       try {
+        const config: Record<string, any> = {
+          systemInstruction,
+          responseMimeType: 'application/json',
+        };
+        // Only supply thinkingConfig for models that support it (e.g. gemini-3.8-flash for plan generation)
+        if (options.isPlanGeneration && modelPlan.name.includes('3.8')) {
+          config.thinkingConfig = { thinkingBudget: 512 };
+        }
+
         const response = await ai.models.generateContent({
           model: modelPlan.name,
           contents: userContent,
-          config: {
-            systemInstruction,
-            responseMimeType: 'application/json',
-            thinkingConfig,
-          },
+          config,
         });
 
         const rawText = response.text || '';
