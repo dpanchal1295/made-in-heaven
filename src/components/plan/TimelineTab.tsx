@@ -49,7 +49,7 @@ export function TimelineTab({
       <EmptyState
         icon={<Clock className="w-5 h-5 text-[#A8603E]" strokeWidth={1.5} />}
         title="No Timeline Generated Yet"
-        description="Maya will craft a chronological countdown from today until your wedding date, highlighting critical milestones."
+        description="Maya will craft a chronological countdown from today until your celebration date, highlighting critical milestones."
         buttonLabel="Generate Timeline with Maya"
         onAction={onGenerate}
         isLoading={isLoading}
@@ -88,7 +88,7 @@ export function TimelineTab({
           </div>
 
           <Badge variant="outline" size="md" className="self-start sm:self-auto font-micro">
-            {daysLeft !== null ? daysLeft : '—'} Days to Wedding Day
+            {daysLeft !== null ? daysLeft : '—'} Days to Celebration
           </Badge>
         </div>
 
@@ -97,7 +97,7 @@ export function TimelineTab({
           <div className="mt-4 p-3.5 bg-[#F1EDE8] border border-[#E4DED6] text-xs text-[#2A2521] flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-[#A8603E] shrink-0" strokeWidth={1.5} />
             <span>
-              <strong>Compressed Timeline:</strong> Since your wedding is in {weeksLeft} weeks, high-lead vendors have been prioritized in early phases.
+              <strong>Compressed Timeline:</strong> Since your celebration is in {weeksLeft} weeks, high-lead vendors have been prioritized in early phases.
             </span>
           </div>
         )}

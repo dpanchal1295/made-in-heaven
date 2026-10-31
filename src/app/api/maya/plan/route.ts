@@ -14,11 +14,11 @@ export const maxDuration = 60;
 
 const PLAN_PART_SPEC: Record<string, { promptSummary: string; schemaDescription: string }> = {
   budget: {
-    promptSummary: 'Compute an itemized wedding budget split across categories and functions.',
+    promptSummary: 'Compute an itemized celebration budget split across categories and functions.',
     schemaDescription: 'structured.data MUST be an array of objects: [{"category": string, "function": string, "percent": number, "estimated_low_inr": number, "estimated_high_inr": number, "notes": string}]. All percentages must sum to 100.',
   },
   timeline: {
-    promptSummary: 'Generate milestone planning timeline countdown to the wedding date.',
+    promptSummary: 'Generate milestone planning timeline countdown to the celebration date.',
     schemaDescription: 'structured.data MUST be an array of objects: [{"when": string, "task": string, "why_it_matters": string, "category": string}] ordered chronologically.',
   },
   checklist: {
@@ -26,15 +26,15 @@ const PLAN_PART_SPEC: Record<string, { promptSummary: string; schemaDescription:
     schemaDescription: 'structured.data MUST be an array of objects: [{"vendor_type": string, "book_by": string, "questions_to_ask": string[] or string, "estimated_range": string}]. Never use real business names.',
   },
   palette: {
-    promptSummary: 'Curate a 4-color cultural wedding palette.',
+    promptSummary: 'Curate a 4-color cultural celebration palette.',
     schemaDescription: 'structured.data MUST be an object: {"colors": [{"color_name": string, "hex": string, "used_for": string, "mood": string}], "why_it_fits": string}.',
   },
   decor: {
-    promptSummary: 'Generate wedding decor concepts for primary wedding areas.',
+    promptSummary: 'Generate decor concepts for primary celebration areas.',
     schemaDescription: 'structured.data MUST be an array of objects: [{"area": string, "idea": string, "diy_rent_or_buy": "DIY" | "Rent" | "Buy", "cost_tier": "₹" | "₹₹" | "₹₹₹", "saving_tip": string}].',
   },
   attire: {
-    promptSummary: 'Generate traditional attire concepts for couple and family roles.',
+    promptSummary: 'Generate traditional attire concepts for hosts, celebrants, and family roles.',
     schemaDescription: 'structured.data MUST be an array of objects: [{"person_or_role": string, "idea": string, "buy_rent_or_custom": "Buy" | "Rent" | "Custom", "cost_tier": "₹" | "₹₹" | "₹₹₹", "lead_time": string, "tradition_note": string}].',
   },
 };
@@ -124,11 +124,11 @@ export async function POST(req: NextRequest) {
     const speaker = session.member;
     const { part, toggleVendor, booked, action } = parsed.data;
 
-    // 1. Action: Clear Plan - Only couple can clear plan
+    // 1. Action: Clear Plan - Only couple/host can clear plan
     if (action === 'clear') {
       if (speaker.permission !== 'couple') {
         return NextResponse.json(
-          { success: false, error: 'Only the couple has permission to clear the wedding plan.' },
+          { success: false, error: 'Only the host or planner has permission to clear the celebration plan.' },
           { status: 403 }
         );
       }

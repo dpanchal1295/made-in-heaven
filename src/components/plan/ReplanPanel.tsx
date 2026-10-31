@@ -160,7 +160,7 @@ export const ReplanPanel: React.FC<ReplanPanelProps> = ({
           <div className="space-y-3 bg-white p-5 border border-[#E4DED6]">
             <div className="flex items-center justify-between">
               <label htmlFor="budget-input" className="font-serif text-base font-medium text-[#2A2521]">
-                Total Wedding Budget
+                Total Celebration Budget
               </label>
               {parsedBudgetAmount ? (
                 <span className="font-mono text-base font-bold text-[#94512F]">

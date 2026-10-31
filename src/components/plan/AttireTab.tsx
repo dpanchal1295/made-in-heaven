@@ -50,7 +50,7 @@ export function AttireTab({
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#2A2521]">
-                Wedding Attire & Styling
+                Attire & Styling
               </h3>
               {source === 'mock' && (
                 <span className="px-2 py-0.5 bg-[#F2EDE4] border border-[#D5C7B5] text-[#94512F] text-[10px] font-mono tracking-wider uppercase font-bold">

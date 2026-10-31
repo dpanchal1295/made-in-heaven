@@ -80,7 +80,7 @@ export default function PlanPage() {
       }
     } catch (err) {
       console.error('Failed to load plan state:', err);
-      showToast('Could not load wedding plan state', 'error');
+      showToast('Could not load celebration plan state', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -254,7 +254,7 @@ export default function PlanPage() {
           setReplanChanges(data.changes);
         }
         setIsReplanOpen(false);
-        showToast('Wedding plan adapted successfully! See summary of changes below.', 'success');
+        showToast('Celebration plan adapted successfully! See summary of changes below.', 'success');
         // Refresh profile & budget
         await fetchPlanState();
       } else {
@@ -299,7 +299,7 @@ export default function PlanPage() {
     }
   };
 
-  const weddingDate = profile?.date || null;
+  const celebrationDate = profile?.date || null;
   const totalBudget = budget?.planning_value || budget?.total || null;
   const budgetRange = budget?.range || null;
   const guestCount = profile?.guest_count?.planning_value || profile?.guest_count?.estimate || null;
@@ -314,7 +314,7 @@ export default function PlanPage() {
       currentTab="plan"
       headerSlot={
         <PlanSummaryStrip
-          weddingDate={weddingDate}
+          weddingDate={celebrationDate}
           totalBudget={totalBudget}
           budgetRange={budgetRange}
           guestCount={guestCount}
@@ -371,7 +371,7 @@ export default function PlanPage() {
               </button>
             </div>
             <p className="text-xs text-[#6B645E]">
-              Maya has adapted your wedding plan. Tabs with updated items are highlighted below:
+              Maya has adapted your celebration plan. Tabs with updated items are highlighted below:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
               {replanChanges.map((change, idx) => (
@@ -452,7 +452,7 @@ export default function PlanPage() {
                 <Clock className="w-6 h-6" strokeWidth={1.5} />
               </div>
               <p className="font-micro text-xs uppercase tracking-[0.15em] text-[#6B645E]">
-                Loading your wedding plan details...
+                Loading your celebration plan details...
               </p>
             </div>
           ) : (
@@ -465,7 +465,7 @@ export default function PlanPage() {
                     </div>
                     <h3 className="font-serif text-lg font-medium text-[#2A2521]">Budget Plan is Private</h3>
                     <p className="text-xs text-[#6B645E] leading-relaxed">
-                      You are signed in as {user?.name} ({user?.relationship}). Detailed rupee budgets are accessible only to the couple.
+                      You are signed in as {user?.name} ({user?.relationship}). Detailed rupee budgets are accessible only to the host or couple.
                     </p>
                   </div>
                 ) : (
@@ -485,7 +485,7 @@ export default function PlanPage() {
                 <TimelineTab
                   timelineData={plan?.timeline?.data || null}
                   source={plan?.timeline?.source}
-                  weddingDate={weddingDate}
+                  weddingDate={celebrationDate}
                   onGenerate={() => handleGeneratePart('timeline')}
                   isLoading={isGeneratingTab || Boolean(generatingTabs[activeTab])}
                 />

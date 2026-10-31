@@ -26,7 +26,7 @@ export function DecorTab({
       <EmptyState
         icon={<Sparkles className="w-5 h-5 text-[#A8603E]" strokeWidth={1.5} />}
         title="No Decor Concepts Generated Yet"
-        description="Maya will generate decor styling for primary wedding zones with practical regional cost tiers and flower sourcing."
+        description="Maya will generate decor styling for primary celebration zones with practical regional cost tiers and sourcing."
         buttonLabel="Generate Decor with Maya"
         onAction={onGenerate}
         isLoading={isLoading}
@@ -49,7 +49,7 @@ export function DecorTab({
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#2A2521]">
-                Wedding Decor Concepts
+                Decor & Styling Concepts
               </h3>
               {source === 'mock' && (
                 <span className="px-2 py-0.5 bg-[#F2EDE4] border border-[#D5C7B5] text-[#94512F] text-[10px] font-mono tracking-wider uppercase font-bold">

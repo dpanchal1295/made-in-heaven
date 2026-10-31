@@ -37,7 +37,7 @@ export function PaletteTab({
       <EmptyState
         icon={<Palette className="w-5 h-5 text-[#A8603E]" strokeWidth={1.5} />}
         title="No Color Palette Generated Yet"
-        description="Maya will curate a harmonized 4-color palette reflecting your wedding heritage, aesthetic mood, and venue lighting."
+        description="Maya will curate a harmonized 4-color palette reflecting your celebration heritage, aesthetic mood, and venue lighting."
         buttonLabel="Generate Palette with Maya"
         onAction={onGenerate}
         isLoading={isLoading}
@@ -59,7 +59,7 @@ export function PaletteTab({
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#2A2521]">
-                Wedding Color Palette
+                Celebration Color Palette
               </h3>
               {source === 'mock' && (
                 <span className="px-2 py-0.5 bg-[#F2EDE4] border border-[#D5C7B5] text-[#94512F] text-[10px] font-mono tracking-wider uppercase font-bold">
@@ -68,7 +68,7 @@ export function PaletteTab({
               )}
             </div>
             <p className="text-xs sm:text-sm text-[#6B645E]">
-              4 coordinated hues curated for decor fabrics, floral mandaps, and attire coordination.
+              4 coordinated hues curated for decor fabrics, stage floral arrangements, and attire coordination.
             </p>
           </div>
 

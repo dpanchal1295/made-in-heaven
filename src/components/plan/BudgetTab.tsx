@@ -42,7 +42,7 @@ export function BudgetTab({
       <EmptyState
         icon={<Wallet className="w-5 h-5 text-[#A8603E]" strokeWidth={1.5} />}
         title="No Budget Plan Generated Yet"
-        description="Maya will compute an itemized wedding budget across four functions and all service categories in INR, anchored to Pune rates."
+        description="Maya will compute an itemized celebration budget across key functions and service categories in INR, anchored to regional rates."
         buttonLabel="Generate Budget with Maya"
         onAction={onGenerate}
         isLoading={isLoading}
@@ -68,7 +68,7 @@ export function BudgetTab({
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#2A2521]">
-                Wedding Budget Breakdown
+                Budget Breakdown
               </h3>
               {source === 'mock' && (
                 <span className="px-2 py-0.5 bg-[#F2EDE4] border border-[#D5C7B5] text-[#94512F] text-[10px] font-mono tracking-wider uppercase font-bold">
