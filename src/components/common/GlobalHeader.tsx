@@ -55,7 +55,7 @@ export function GlobalHeader() {
     { label: 'Birthdays', href: '/birthdays' },
     { label: 'Community', href: '/community' },
     { label: 'Ideas', href: '/ideas' },
-    { label: 'About', href: '/about' },
+    { label: 'About Maya', href: '/about' },
   ];
 
   const navLinks = user?.homeId ? signedInLinks : signedOutLinks;

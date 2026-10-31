@@ -4,9 +4,19 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Photo } from '@/components/common/Photo';
+import { CurtainHero } from '@/components/landing/CurtainHero';
+import { Eyebrow } from '@/components/common/Eyebrow';
 import { Button } from '@/components/ui';
-import { Sparkles, HeartHandshake, ShieldCheck, Scale, ArrowRight } from 'lucide-react';
-import { motion, useReducedMotion } from 'framer-motion';
+import {
+  Sparkles,
+  HeartHandshake,
+  ShieldCheck,
+  Scale,
+  Languages,
+  Lock,
+  ListChecks,
+} from 'lucide-react';
+import { useReducedMotion } from 'framer-motion';
 
 export default function AboutPage() {
   const router = useRouter();
@@ -15,207 +25,239 @@ export default function AboutPage() {
 
   const handleStartPlanning = () => {
     if (user) {
-      router.push('/home');
+      router.push('/start');
     } else {
-      router.push('/signin');
+      router.push('/signin?redirect=/start');
     }
   };
 
   return (
-    <div className="w-full bg-[#FCFBF8] text-[#2A2521] min-h-screen">
+    <div className="w-full bg-[#FCFBF8] text-[#2A2521] min-h-screen selection:bg-[#F1EDE8]">
       {/* ============================================================ */}
-      {/* 1. HERO SECTION (~70vh with photo and two-line headline)     */}
+      {/* 1. HERO SECTION: Full-screen pinned curtain hero (like /weddings) */}
       {/* ============================================================ */}
-      <section className="relative w-full h-[65vh] sm:h-[70vh] min-h-[460px] flex items-end pb-16 sm:pb-20 px-6 sm:px-12 lg:px-16 overflow-hidden">
-        <div className="absolute inset-0 z-0">
+      <CurtainHero
+        media={
           <Photo
             imageKey="hero"
             aspectRatio="hero"
             priority
-            className="w-full h-full"
-          />
-          {/* Editorial dark gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#2A2521]/90 via-[#2A2521]/50 to-[#2A2521]/30" />
+            quality={85}
+            className="w-full h-full object-cover"
+          >
+            <div
+              className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/25"
+              aria-hidden="true"
+            />
+          </Photo>
+        }
+      >
+        <span className="font-micro text-[11px] sm:text-xs text-[#E4DED6] tracking-[0.2em] uppercase block mb-3 font-medium">
+          MEET YOUR CELEBRATION PLANNER
+        </span>
+
+        <h1 className="font-serif text-4xl sm:text-6xl md:text-7xl lg:text-[76px] font-normal leading-[1.05] tracking-tight mb-6">
+          Every celebration, <span className="italic">understood deeply</span>
+        </h1>
+
+        <p className="font-sans text-base sm:text-lg md:text-xl text-white/90 font-light max-w-2xl leading-relaxed mb-8 sm:mb-10">
+          Maya is an empathetic AI celebration planner designed for Indian families, bringing honest budgets, calm countdowns, and united family consensus to weddings, milestone birthdays, and community festivals.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <Button
+            size="lg"
+            onClick={handleStartPlanning}
+            className="bg-[#94512F] hover:bg-[#7D3F22] text-white border-0 px-8 py-4 font-sans tracking-widest text-xs font-medium uppercase shadow-lg transition-all"
+          >
+            START PLANNING
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => {
+              const el = document.getElementById('how-maya-plans');
+              if (el) {
+                el.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+              }
+            }}
+            className="border-white/50 text-white hover:bg-white hover:text-[#2A2521] px-8 py-4 font-sans tracking-widest text-xs font-medium uppercase backdrop-blur-sm transition-all"
+          >
+            HOW MAYA PLANS
+          </Button>
         </div>
-
-        <div className="relative z-10 max-w-4xl space-y-4">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <span className="font-micro text-[11px] text-[#E4DED6] tracking-[0.2em] uppercase block">
-              OUR APPROACH & PRINCIPLES
-            </span>
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.8, delay: 0.1 }}
-            className="font-serif text-5xl sm:text-6xl md:text-7xl font-normal leading-[1.05] text-white"
-          >
-            <span className="block font-normal">Weddings, Planned</span>
-            <span className="block italic font-normal">Together</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.8, delay: 0.2 }}
-            className="text-sm sm:text-base text-white/90 max-w-xl font-light leading-relaxed pt-2"
-          >
-            A calm, honest space for Indian families to align budgets, schedules, and rituals without chaotic friction.
-          </motion.p>
-        </div>
-      </section>
+      </CurtainHero>
 
       {/* ============================================================ */}
-      {/* 2. TWO-COLUMN SPLIT: WHAT MADE IN HEAVEN IS & HOW MAYA WORKS */}
+      {/* 2. RISING SHEET: WHO MAYA IS & HOW SHE PLANS                 */}
       {/* ============================================================ */}
-      <section className="max-w-7xl mx-auto py-20 sm:py-28 px-6 sm:px-12 lg:px-16 space-y-24">
-        {/* Split 1: What Made in Heaven Is */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          <div className="space-y-6">
-            <span className="font-micro text-[11px] text-[#94512F] tracking-[0.2em] uppercase block">
-              WHAT MADE IN HEAVEN IS
-            </span>
+      <section className="relative z-10 py-20 sm:py-28 px-6 sm:px-12 md:px-20 lg:px-24 bg-[#FCFBF8] rounded-t-[28px] sm:rounded-t-[36px] shadow-[0_-16px_40px_rgba(42,37,33,0.18)]">
+        <div className="max-w-7xl mx-auto space-y-24">
+          {/* Split 1: What Made in Heaven Is (Rebalanced full-width editorial without empty photo block) */}
+          <div className="max-w-3xl mx-auto text-center space-y-6">
+            <Eyebrow className="mb-2">
+              OUR PHILOSOPHY
+            </Eyebrow>
 
-            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-medium text-[#2A2521] leading-tight">
-              Quiet clarity for one of life’s most multifaceted celebrations.
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-medium text-[#2A2521] leading-tight">
+              Quiet clarity for life’s most multifaceted celebrations.
             </h2>
 
-            <div className="space-y-4 text-sm sm:text-base text-[#6B645E] leading-relaxed">
+            <div className="space-y-4 text-base sm:text-lg text-[#6B645E] leading-relaxed font-light">
               <p>
-                An Indian wedding is rarely just an event; it is an intimate confluence of two families, generations of customs, intricate regional rituals, and heartfelt hospitality.
+                An Indian celebration is never just an event on a calendar. It is a heartfelt confluence of family generations, regional customs, hospitality, and shared pride — whether you are welcoming 300 guests for a sacred wedding, gathering cousins for a 60th birthday Shashti Poorthi, or coordinating 1,000 residents for a society festival.
               </p>
               <p>
-                Made in Heaven replaces fragmented spreadsheets, conflicting WhatsApp group chats, and anxiety with a thoughtful, structured planning companion designed specifically for multi-day Indian festivities.
+                Made in Heaven replaces overwhelming spreadsheets, scattered WhatsApp groups, and second-guessing with a thoughtful, structured planning companion who listens first, organizes every detail transparently, and helps everyone feel heard.
               </p>
             </div>
           </div>
 
-          <div className="w-full">
-            <Photo
-              imageKey="about"
-              aspectRatio="tall"
-              hoverZoom
-              className="border border-[#E4DED6]"
-            />
-          </div>
-        </div>
-
-        {/* Split 2: How Maya Works */}
-        <div id="how-maya-works" className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center scroll-mt-24">
-          <div className="w-full order-2 lg:order-1">
-            <Photo
-              imageKey="maya"
-              aspectRatio="tall"
-              hoverZoom
-              className="border border-[#E4DED6]"
-            />
-          </div>
-
-          <div className="space-y-8 order-1 lg:order-2">
-            <div>
-              <span className="font-micro text-[11px] text-[#94512F] tracking-[0.2em] uppercase block mb-2">
-                HOW MAYA WORKS
-              </span>
-              <h2 className="font-serif text-3xl sm:text-4xl font-medium text-[#2A2521]">
-                Thoughtful, transparent assistance at every milestone.
+          {/* Split 2: How Maya Plans */}
+          <div id="how-maya-plans" className="scroll-mt-24 pt-8 border-t border-[#E4DED6]">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <Eyebrow className="mb-4">
+                HOW MAYA PLANS
+              </Eyebrow>
+              <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-normal text-[#2A2521]">
+                Principles behind every conversation
               </h2>
             </div>
 
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Pillar 1: Asks First */}
-              <div className="flex items-start gap-4">
-                <div className="w-9 h-9 shrink-0 bg-[#F1EDE8] border border-[#E4DED6] flex items-center justify-center text-[#94512F]">
-                  <Sparkles className="w-4 h-4" strokeWidth={1.5} />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-serif text-xl font-medium text-[#2A2521]">
-                    Asks first
+              <div className="bg-[#FCFBF8] p-8 border border-[#E4DED6] flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="w-10 h-10 bg-[#F1EDE8] border border-[#E4DED6] flex items-center justify-center text-[#94512F]">
+                    <Sparkles className="w-5 h-5" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-serif text-2xl font-normal text-[#2A2521]">
+                    Asks first, one question at a time
                   </h3>
-                  <p className="text-xs sm:text-sm text-[#6B645E] leading-relaxed">
-                    Maya never pushes pre-made templates. She listens to your family’s traditions, regional preferences, and aesthetic vision first before calculating a single estimate.
+                  <p className="font-sans text-sm text-[#6B645E] leading-relaxed">
+                    Maya never pushes pre-made packages or overwhelming forms. She texts like an experienced friend, asking one question at a time so you can build your plan at your own pace.
                   </p>
                 </div>
               </div>
 
-              {/* Pillar 2: Honest in the Way You Like */}
-              <div className="flex items-start gap-4">
-                <div className="w-9 h-9 shrink-0 bg-[#F1EDE8] border border-[#E4DED6] flex items-center justify-center text-[#94512F]">
-                  <Scale className="w-4 h-4" strokeWidth={1.5} />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-serif text-xl font-medium text-[#2A2521]">
-                    Honest in the way you like
+              {/* Pillar 2: Honest Budgets & Estimates */}
+              <div className="bg-[#FCFBF8] p-8 border border-[#E4DED6] flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="w-10 h-10 bg-[#F1EDE8] border border-[#E4DED6] flex items-center justify-center text-[#94512F]">
+                    <Scale className="w-5 h-5" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-serif text-2xl font-normal text-[#2A2521]">
+                    Honest budgets, estimates not vendors
                   </h3>
-                  <p className="text-xs sm:text-sm text-[#6B645E] leading-relaxed">
-                    Provides grounded per-function INR budget allocations, flags unrealistic expectations gently, and does not push hidden commercial vendor sponsorships.
+                  <p className="font-sans text-sm text-[#6B645E] leading-relaxed">
+                    Every figure is an objective planning estimate in rupees broken down by function. Maya never takes vendor kickbacks, hides commercial sponsorships, or locks you into proprietary contracts.
                   </p>
                 </div>
               </div>
 
-              {/* Pillar 3: Plans with the Whole Family */}
-              <div className="flex items-start gap-4">
-                <div className="w-9 h-9 shrink-0 bg-[#F1EDE8] border border-[#E4DED6] flex items-center justify-center text-[#94512F]">
-                  <HeartHandshake className="w-4 h-4" strokeWidth={1.5} />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-serif text-xl font-medium text-[#2A2521]">
-                    Plans with the whole family
+              {/* Pillar 3: Families Decide Together */}
+              <div className="bg-[#FCFBF8] p-8 border border-[#E4DED6] flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="w-10 h-10 bg-[#F1EDE8] border border-[#E4DED6] flex items-center justify-center text-[#94512F]">
+                    <HeartHandshake className="w-5 h-5" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-serif text-2xl font-normal text-[#2A2521]">
+                    Families decide together
                   </h3>
-                  <p className="text-xs sm:text-sm text-[#6B645E] leading-relaxed">
-                    Dedicated discussion rooms with role-based permissions (couples, parents as voters, advisors, and viewers). Maya synthesizes consensus and enables majority voting when opinions differ.
+                  <p className="font-sans text-sm text-[#6B645E] leading-relaxed">
+                    Invite parents, siblings, or committee members into shared rooms. When opinions diverge, Maya synthesizes options and runs democratic voting with automatic majority tallies.
+                  </p>
+                </div>
+              </div>
+
+              {/* Pillar 4: Languages & Voice */}
+              <div className="bg-[#FCFBF8] p-8 border border-[#E4DED6] flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="w-10 h-10 bg-[#F1EDE8] border border-[#E4DED6] flex items-center justify-center text-[#94512F]">
+                    <Languages className="w-5 h-5" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-serif text-2xl font-normal text-[#2A2521]">
+                    Languages & voice mode
+                  </h3>
+                  <p className="font-sans text-sm text-[#6B645E] leading-relaxed">
+                    Speak or chat naturally in English or your native language. Maya supports spoken audio and localized script typography across Hindi, Gujarati, Punjabi, and Marathi.
+                  </p>
+                </div>
+              </div>
+
+              {/* Pillar 5: Privacy & Budget Protection */}
+              <div className="bg-[#FCFBF8] p-8 border border-[#E4DED6] flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="w-10 h-10 bg-[#F1EDE8] border border-[#E4DED6] flex items-center justify-center text-[#94512F]">
+                    <Lock className="w-5 h-5" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-serif text-2xl font-normal text-[#2A2521]">
+                    Private budgets & safety
+                  </h3>
+                  <p className="font-sans text-sm text-[#6B645E] leading-relaxed">
+                    Sensitive total spending numbers remain strictly hidden from advisors or guest viewers. Roles and permissions are enforced at the server level, never left to client state.
+                  </p>
+                </div>
+              </div>
+
+              {/* Pillar 6: Complete Living Plan */}
+              <div className="bg-[#FCFBF8] p-8 border border-[#E4DED6] flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="w-10 h-10 bg-[#F1EDE8] border border-[#E4DED6] flex items-center justify-center text-[#94512F]">
+                    <ListChecks className="w-5 h-5" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-serif text-2xl font-normal text-[#2A2521]">
+                    Living celebration blueprint
+                  </h3>
+                  <p className="font-sans text-sm text-[#6B645E] leading-relaxed">
+                    Six synchronized tabs covering your itemized budget, preparation timeline countdown, vendor checklist, colour palette, decor concepts, and attire inspirations that update as plans evolve.
                   </p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Clear Notice on Estimates & Hack2Skills Acknowledgement */}
-        <div className="bg-[#F1EDE8] border border-[#E4DED6] p-8 sm:p-10 space-y-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-[#94512F]" strokeWidth={1.5} />
-            <span className="font-micro text-[11px] text-[#94512F] tracking-[0.2em] uppercase font-semibold">
-              ESTIMATES & SCOPE NOTICE
-            </span>
+          {/* Estimates & Fair Notice */}
+          <div className="bg-[#F1EDE8] border border-[#E4DED6] p-8 sm:p-10 space-y-4">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-[#94512F]" strokeWidth={1.5} />
+              <span className="font-micro text-[11px] text-[#94512F] tracking-[0.2em] uppercase font-semibold">
+                ESTIMATES & SCOPE NOTICE
+              </span>
+            </div>
+
+            <p className="text-xs sm:text-sm text-[#6B645E] leading-relaxed max-w-3xl">
+              All budgets, catering plate ranges, and decor tiers generated by Maya are benchmark estimates intended to help families organize realistic expectations. Final contracts, prices, and agreements are always finalized directly with real local service providers.
+            </p>
+
+            <div className="pt-2 border-t border-[#E4DED6] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-[#6B645E]">
+              <span className="font-micro tracking-[0.15em] uppercase font-medium">
+                Made in Heaven — Built for Indian Celebrations
+              </span>
+              <span className="italic">
+                Transparent guidance • Role-based family collaboration • Zero vendor kickbacks
+              </span>
+            </div>
           </div>
 
-          <p className="text-xs sm:text-sm text-[#6B645E] leading-relaxed max-w-3xl">
-            All budgets, plate rates, and cost tiers generated by Maya are rough planning ranges intended to help families benchmark realistic allocations. Final contracts and exact fees must always be confirmed directly with real vendors and venues.
-          </p>
-
-          <div className="pt-2 border-t border-[#E4DED6] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-[#6B645E]">
-            <span className="font-micro tracking-[0.15em] uppercase">
-              Built for the Hack2Skills AI Prompt War
-            </span>
-            <span className="italic">
-              Zero fake vendor listings • Realtime family rooms • Native regional script support
-            </span>
-          </div>
-        </div>
-
-        {/* Call to Action */}
-        <div className="text-center py-10 space-y-6">
-          <h2 className="font-serif text-3xl sm:text-4xl font-medium text-[#2A2521]">
-            Ready to plan with clarity?
-          </h2>
-          <p className="text-sm text-[#6B645E] max-w-md mx-auto">
-            Start your family wedding home in less than a minute and experience Maya’s guidance.
-          </p>
-          <div className="pt-2">
-            <Button
-              variant="primary"
-              size="lg"
-              withArrow
-              onClick={handleStartPlanning}
-              className="px-8 shadow-sm"
-            >
-              START PLANNING
-            </Button>
+          {/* Call to Action */}
+          <div className="text-center py-10 space-y-6">
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-medium text-[#2A2521]">
+              Ready to plan your celebration?
+            </h2>
+            <p className="text-sm sm:text-base text-[#6B645E] max-w-md mx-auto">
+              Create your celebration Home in under a minute with Maya.
+            </p>
+            <div className="pt-2">
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={handleStartPlanning}
+                className="px-8 shadow-sm bg-[#94512F] hover:bg-[#7D3F22] text-white"
+              >
+                START PLANNING
+              </Button>
+            </div>
           </div>
         </div>
       </section>

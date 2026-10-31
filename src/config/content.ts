@@ -125,7 +125,7 @@ export const THEMED_LANDING_CONFIGS: Record<'wedding' | 'birthday' | 'community'
       headlineLine1: 'Celebrations of',
       headlineLine2: 'Lasting Joy',
       italicWord: 'Lasting',
-      subline: 'Maya, your personal wedding manager, helps Indian families plan the budget, timeline, decor, and attire, together.',
+      subline: 'Maya, your event manager, helping families plan the budget, timeline, decor and much more.',
       ctaPrimary: 'START PLANNING',
       ctaSecondary: 'HOW IT WORKS',
       scrollCue: 'SCROLL',
@@ -165,7 +165,7 @@ export const THEMED_LANDING_CONFIGS: Record<'wedding' | 'birthday' | 'community'
       sectionTitle: 'Tailored for Indian Weddings',
       viewAll: 'VIEW ALL',
       label: 'Wedding concepts',
-      disclaimer: 'Illustrative aesthetic concepts generated to inspire your planning. Never real vendors or fixed prices.',
+      disclaimer: '',
       ideas: [
         {
           category: 'Decor',
@@ -281,18 +281,6 @@ export const THEMED_LANDING_CONFIGS: Record<'wedding' | 'birthday' | 'community'
           description: 'Cardamom-pistachio or classic rich Belgian chocolate paired with delicious live chaat counters.',
           imageKey: 'birthdayCake',
         },
-        {
-          category: 'Attire',
-          title: 'Festive Kurta & Silk Elegance',
-          description: 'Coordinated family pastel ethnic wear for morning blessings and cocktail chic for the evening.',
-          imageKey: 'birthdayAttire',
-        },
-        {
-          category: 'Entertainment',
-          title: 'Live Acoustic & Retro Beats',
-          description: 'Acoustic guitar sing-alongs, retro Bollywood trivia, and family photo booth keepsakes.',
-          imageKey: 'birthdayMusic',
-        },
       ],
     },
     celebrations: {
@@ -303,8 +291,6 @@ export const THEMED_LANDING_CONFIGS: Record<'wedding' | 'birthday' | 'community'
         { title: '1st Birthday', subtitle: 'The Ayushya Homam', description: 'Pastel themes, auspicious morning blessings, soft play zones, and sweets for little guests.', imageKey: 'birthdayFirst' },
         { title: '18th Milestone', subtitle: 'Stepping into Tomorrow', description: 'Neon dancefloor, mocktail bar, fun photo booths, and an unforgettable evening with friends.', imageKey: 'birthdayTeen' },
         { title: '50th & 60th Jubilee', subtitle: 'Golden Milestones', description: 'Shashti Poorthi rituals, touching family retrospective slideshows, and elegant dinner banquets.', imageKey: 'birthdayMilestone' },
-        { title: 'Morning Puja', subtitle: 'Auspicious Blessings', description: 'Traditional family prayers, marigold thalis, and sacred blessings for health and longevity.', imageKey: 'birthdayPuja' },
-        { title: 'Evening Party', subtitle: 'Feast & Music', description: 'Heartfelt toasts, delicious multi-cuisine buffet, and dancing with cousins and neighbours.', imageKey: 'birthdayParty' },
       ],
     },
     planTogether: {
@@ -381,12 +367,6 @@ export const THEMED_LANDING_CONFIGS: Record<'wedding' | 'birthday' | 'community'
           title: 'Wholesome Community Bhojan',
           description: 'Hygienic community kitchen logistics, organic leaf plates, and streamlined queue management.',
           imageKey: 'communityFood',
-        },
-        {
-          category: 'Volunteer Attire',
-          title: 'Coordinated Committee Sashes',
-          description: 'Comfortable bandhani kurtas, branded volunteer sashes, and high-visibility event badges.',
-          imageKey: 'communityAttire',
         },
         {
           category: 'Sound & Orchestra',

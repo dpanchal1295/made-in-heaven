@@ -52,14 +52,6 @@ export default function WelcomePage() {
           >
             START PLANNING
           </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => router.push('/weddings')}
-            className="border-white/50 text-white hover:bg-white hover:text-[#2A2521] px-8 py-4 font-sans tracking-widest text-xs font-medium uppercase backdrop-blur-sm transition-all"
-          >
-            EXPLORE WEDDINGS
-          </Button>
         </div>
       </CurtainHero>
 

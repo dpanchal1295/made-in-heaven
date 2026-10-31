@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/common/Logo';
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
-import { ArrowLeft, User, Sparkles } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
+import { ArrowLeft, User } from 'lucide-react';
 
 function SignInForm() {
   const router = useRouter();
@@ -79,8 +79,8 @@ function SignInForm() {
         )}
 
         {/* Main Sign In Card */}
-        <Card className="border border-[#E4DED6] bg-white p-6 sm:p-8 space-y-6 shadow-sm">
-          <CardHeader className="p-0 space-y-1">
+        <Card className="border border-[#E4DED6] bg-white p-6 sm:p-8 space-y-6 shadow-xs">
+          <CardHeader className="p-0 space-y-1.5 text-center">
             <CardTitle className="font-serif text-2xl text-[#2A2521] font-normal">
               Begin your celebration
             </CardTitle>
@@ -91,15 +91,13 @@ function SignInForm() {
 
           <CardContent className="p-0 space-y-4">
             {/* Google Sign In Button */}
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="lg"
               disabled={loadingGoogle || loadingGuest}
               onClick={handleGoogleSignIn}
-              className="w-full flex items-center justify-center gap-3 py-6 border-[#E4DED6] hover:bg-[#F9F7F4] text-[#2A2521] font-medium text-sm transition-all"
+              className="w-full inline-flex items-center justify-center gap-3 py-3.5 px-4 bg-white hover:bg-[#F9F7F4] border border-[#E4DED6] hover:border-[#2A2521] text-[#2A2521] text-sm font-medium transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#94512F] focus:ring-offset-1"
             >
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+              <svg className="w-4 h-4 shrink-0 inline-block align-middle" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -117,34 +115,32 @@ function SignInForm() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>{loadingGoogle ? 'Signing in with Google...' : 'Continue with Google'}</span>
-            </Button>
+              <span className="whitespace-nowrap">{loadingGoogle ? 'Signing in with Google...' : 'Continue with Google'}</span>
+            </button>
 
             {/* Subtle Divider */}
-            <div className="relative py-2 flex items-center justify-center">
+            <div className="relative py-1 flex items-center justify-center">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-[#E4DED6]" />
               </div>
-              <span className="relative px-3 bg-white text-[11px] font-micro uppercase tracking-wider text-[#A39B94]">
+              <span className="relative px-3 bg-white text-[10px] font-micro uppercase tracking-wider text-[#A39B94]">
                 OR
               </span>
             </div>
 
             {/* Continue as Guest Button */}
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="lg"
               disabled={loadingGoogle || loadingGuest}
               onClick={handleGuestSignIn}
-              className="w-full flex items-center justify-center gap-2 py-6 border-[#E4DED6] hover:bg-[#F9F7F4] text-[#2A2521] font-medium text-sm transition-all"
+              className="w-full inline-flex items-center justify-center gap-2.5 py-3.5 px-4 bg-white hover:bg-[#F9F7F4] border border-[#E4DED6] hover:border-[#2A2521] text-[#2A2521] text-sm font-medium transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#94512F] focus:ring-offset-1"
             >
-              <User className="w-4 h-4 text-[#8E4A00]" />
-              <span>{loadingGuest ? 'Creating guest session...' : 'Continue as guest'}</span>
-            </Button>
+              <User className="w-4 h-4 text-[#94512F] shrink-0 inline-block align-middle" strokeWidth={1.75} />
+              <span className="whitespace-nowrap">{loadingGuest ? 'Creating guest session...' : 'Continue as guest'}</span>
+            </button>
 
             {/* Exact Approved Guest Privacy Note */}
-            <p className="text-[12px] text-[#6B645E] leading-relaxed pt-2 text-center">
+            <p className="text-[11px] sm:text-[12px] text-[#6B645E] leading-relaxed pt-2 text-center">
               Guest plans are saved on this browser only. Sign in with Google to keep them across devices.
             </p>
           </CardContent>

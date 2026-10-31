@@ -90,7 +90,13 @@ export function ThemedLandingView({ config }: ThemedLandingViewProps) {
   };
 
   const handleLearnMore = () => {
-    router.push('/about');
+    const el = document.getElementById('how-it-works');
+    if (el) {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+    } else {
+      router.push('/about');
+    }
   };
 
   return (
@@ -189,7 +195,7 @@ export function ThemedLandingView({ config }: ThemedLandingViewProps) {
       </section>
 
       {/* 3. How it Works Section */}
-      <section className="py-20 sm:py-28 px-6 sm:px-12 md:px-20 lg:px-24 bg-[#F1EDE8] border-y border-[#E4DED6]">
+      <section id="how-it-works" className="py-20 sm:py-28 px-6 sm:px-12 md:px-20 lg:px-24 bg-[#F1EDE8] border-y border-[#E4DED6]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <Eyebrow className="mb-4">
@@ -237,7 +243,15 @@ export function ThemedLandingView({ config }: ThemedLandingViewProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div
+            className={`grid gap-6 ${
+              config.suggestions.ideas.length === 2
+                ? 'grid-cols-1 sm:grid-cols-2 max-w-4xl mx-auto'
+                : config.suggestions.ideas.length === 3
+                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto'
+                : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+            }`}
+          >
             {config.suggestions.ideas.map((idea, idx) => (
               <div key={idx} className="group border border-[#E4DED6] bg-[#FCFBF8] flex flex-col overflow-hidden">
                 <Photo
