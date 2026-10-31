@@ -42,10 +42,10 @@ yarn-error.log*
 next-env.d.ts
 
 # local development data
-data/
+/data/
 
 # design assets backup
-design-assets/
+/design-assets/
 
 # screenshots
 screenshots/

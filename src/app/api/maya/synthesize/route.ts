@@ -9,7 +9,6 @@ const SynthesizeBodySchema = z.object({
   roomId: z.string().min(1),
 });
 
-export { DecisionBriefDataSchema as DecisionBriefSchema } from '@/lib/maya/schemas';
 import { DecisionBriefDataSchema as DecisionBriefSchema } from '@/lib/maya/schemas';
 
 export async function POST(req: NextRequest) {
