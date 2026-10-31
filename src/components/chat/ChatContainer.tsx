@@ -668,7 +668,7 @@ export const ChatContainer: React.FC = () => {
               {isLoading && (
                 <div className="flex items-center gap-3 py-3 px-4 max-w-xs bg-[#FCFBF8] border border-[#E4DED6] mb-4">
                   <div className="w-4 h-4 flex items-center justify-center">
-                    <Logo size="xs" markOnly variant="dark" />
+                    <Logo size="sm" markOnly variant="dark" />
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-[#6B645E] font-sans">
                     <span>Maya is thinking</span>

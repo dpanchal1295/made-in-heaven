@@ -251,7 +251,6 @@ export function PlanSummaryStrip({
         isOpen={showClearConfirm}
         onClose={() => setShowClearConfirm(false)}
         title="Clear Celebration Blueprint"
-        size="sm"
       >
         <div className="space-y-4 pt-2">
           <div className="flex items-start gap-3 p-3 bg-[#F1EDE8] border border-[#E4DED6] text-xs text-[#2A2521]">
@@ -270,7 +269,7 @@ export function PlanSummaryStrip({
               Cancel
             </Button>
             <Button
-              variant="destructive"
+              variant="danger"
               size="sm"
               onClick={handleClear}
               disabled={isClearing}

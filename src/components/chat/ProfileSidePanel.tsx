@@ -139,11 +139,15 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
               </span>
             </div>
             <p className="text-sm font-medium text-[#2A2521] pl-5.5">
-              {profile?.guestCount ? (
-                typeof profile.guestCount === 'number' ? (
-                  `${profile.guestCount} guests`
+              {profile?.guest_count ? (
+                profile.guest_count.planning_value ? (
+                  `${profile.guest_count.planning_value} guests`
+                ) : profile.guest_count.estimate ? (
+                  `${profile.guest_count.estimate} guests`
+                ) : profile.guest_count.range ? (
+                  `${profile.guest_count.range.low} - ${profile.guest_count.range.high} guests`
                 ) : (
-                  `${profile.guestCount.planning_value} guests (${profile.guestCount.low} - ${profile.guestCount.high} range)`
+                  'Estimated'
                 )
               ) : (
                 <span className="text-[#6B645E]/60 italic font-normal">Not set yet</span>
@@ -161,15 +165,19 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
             </div>
             <div className="pl-5.5">
               {budget ? (
-                typeof budget.totalBudget === 'number' ? (
-                  <p className="text-sm font-medium text-[#2A2521]">{formatINR(budget.totalBudget)}</p>
-                ) : (
+                budget.planning_value ? (
                   <div>
-                    <p className="text-sm font-medium text-[#2A2521]">{formatINR(budget.totalBudget.planning_value)}</p>
-                    <p className="text-xs text-[#6B645E] mt-0.5">
-                      Range: {formatINR(budget.totalBudget.low)} - {formatINR(budget.totalBudget.high)}
-                    </p>
+                    <p className="text-sm font-medium text-[#2A2521]">{formatINR(budget.planning_value)}</p>
+                    {budget.range && (
+                      <p className="text-xs text-[#6B645E] mt-0.5">
+                        Range: {formatINR(budget.range.low)} - {formatINR(budget.range.high)}
+                      </p>
+                    )}
                   </div>
+                ) : budget.total ? (
+                  <p className="text-sm font-medium text-[#2A2521]">{formatINR(budget.total)}</p>
+                ) : (
+                  <p className="text-xs text-[#6B645E]/80">Budget set</p>
                 )
               ) : (
                 <p className="text-xs text-[#6B645E]/80 italic">Confidential / Not specified</p>
@@ -204,7 +212,7 @@ export const ProfileSidePanel: React.FC<ProfileSidePanelProps> = ({
               </span>
             </div>
             <p className="text-sm font-medium text-[#2A2521] pl-5.5 capitalize">
-              {profile?.communicationStyle?.honesty_preference || (
+              {profile?.communication_style?.honesty_preference || (
                 <span className="text-[#6B645E]/60 italic font-normal">Balanced</span>
               )}
             </p>
