@@ -52,10 +52,10 @@ function StartForm() {
   }, [user, isLoading, typeParam, router]);
 
   useEffect(() => {
-    if (user?.name) {
+    if (user?.name && !user.isGuest) {
       setHostDisplayName(user.name);
     }
-  }, [user?.name]);
+  }, [user?.name, user?.isGuest]);
 
   useEffect(() => {
     if (typeParam === 'wedding' || typeParam === 'birthday' || typeParam === 'community') {

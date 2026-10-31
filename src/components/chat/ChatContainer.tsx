@@ -42,9 +42,12 @@ export const ChatContainer: React.FC = () => {
   const [isResetting, setIsResetting] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastSentText, setLastSentText] = useState<string | null>(null);
+  const [showTimeoutRetry, setShowTimeoutRetry] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const timeoutTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -115,6 +118,8 @@ export const ChatContainer: React.FC = () => {
 
     setInputMessage('');
     setErrorMessage(null);
+    setShowTimeoutRetry(false);
+    setLastSentText(text);
 
     const tempUserMsg: Message = {
       id: `temp_${Date.now()}`,
@@ -126,6 +131,14 @@ export const ChatContainer: React.FC = () => {
     };
     setMessages((prev) => [...prev, tempUserMsg]);
     setIsLoading(true);
+
+    if (timeoutTimerRef.current) {
+      clearTimeout(timeoutTimerRef.current);
+    }
+    // After 25 seconds of waiting, show a friendly message with a "Try again" button
+    timeoutTimerRef.current = setTimeout(() => {
+      setShowTimeoutRetry(true);
+    }, 25000);
 
     try {
       const homeId = user?.homeId;
@@ -144,6 +157,7 @@ export const ChatContainer: React.FC = () => {
       const data = await res.json();
 
       if (data.success) {
+        setShowTimeoutRetry(false);
         const mayaReply = data.reply || data.envelope?.reply || data.message?.text || '';
         const mayaStructured = data.structured || data.envelope?.structured || data.message?.structured;
         const mayaQuickReplies = data.quick_replies || data.envelope?.quick_replies || mayaStructured?.quick_replies;
@@ -204,6 +218,10 @@ export const ChatContainer: React.FC = () => {
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
+      if (timeoutTimerRef.current) {
+        clearTimeout(timeoutTimerRef.current);
+        timeoutTimerRef.current = null;
+      }
       setIsLoading(false);
       inputRef.current?.focus();
     }
@@ -342,7 +360,7 @@ export const ChatContainer: React.FC = () => {
               Planning with Maya
             </h2>
             <p className="font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em] mt-0.5">
-              CONSULTATIVE WEDDING MANAGER
+              YOUR CELEBRATION PLANNER
             </p>
           </div>
 
@@ -402,21 +420,44 @@ export const ChatContainer: React.FC = () => {
 
               {/* Typing / Thinking Indicator */}
               {isLoading && (
-                <div
-                  className="flex items-center gap-3 mb-4 max-w-md"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <div className="bg-[#FCFBF8] border border-[#E4DED6] px-4 py-2.5 flex items-center gap-2.5 shadow-xs">
-                    <span className="font-serif italic text-xs text-[#2A2521]">
-                      Maya is typing…
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#94512F] animate-bounce" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#94512F] animate-bounce [animation-delay:0.2s]" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#94512F] animate-bounce [animation-delay:0.4s]" />
-                    </span>
+                <div className="space-y-2 mb-4 max-w-md">
+                  <div
+                    className="flex items-center gap-3"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <div className="bg-[#FCFBF8] border border-[#E4DED6] px-4 py-2.5 flex items-center gap-2.5 shadow-xs">
+                      <span className="font-serif italic text-xs text-[#2A2521]">
+                        Maya is typing…
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#94512F] animate-bounce" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#94512F] animate-bounce [animation-delay:0.2s]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#94512F] animate-bounce [animation-delay:0.4s]" />
+                      </span>
+                    </div>
                   </div>
+
+                  {showTimeoutRetry && (
+                    <div className="bg-[#FCFBF8] border border-[#94512F]/30 p-3 text-xs text-[#2A2521] flex items-center justify-between gap-3 shadow-xs">
+                      <span className="text-[#6B645E]">
+                        Maya is taking longer than usual to think through the details.
+                      </span>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          if (lastSentText) {
+                            handleSendMessage(lastSentText);
+                          }
+                        }}
+                        className="shrink-0 text-xs py-1 px-3 border border-[#2A2521]"
+                      >
+                        Try again
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 

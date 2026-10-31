@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const parsed = GuestBodySchema.safeParse(body);
-    const displayName = (parsed.success && parsed.data.displayName?.trim()) || 'Guest Planner';
+    const displayName = (parsed.success && parsed.data.displayName?.trim()) || '';
 
     const uid = `guest_${crypto.randomUUID()}`;
     const now = Date.now();

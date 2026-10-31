@@ -268,6 +268,7 @@ Do NOT wrap the array in an object key like { items: ... } or { ${p}: ... }. Ret
             eventProfile: home.profile,
             budget: speaker.canSeeBudget ? budget : null,
             topic: `Generate ${p} plan`,
+            isPlanGeneration: true,
           });
 
           if (envelope.structured && envelope.structured.type === p && envelope.structured.data) {

@@ -219,8 +219,13 @@ export async function callMaya(options: CallMayaOptions): Promise<MayaResponseEn
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-  const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
+  // GEMINI_CHAT_MODEL for normal chat turns, GEMINI_MODEL for plan generation & synthesis
+  const configuredChatModel = process.env.GEMINI_CHAT_MODEL || process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
+  const configuredComplexModel = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+
+  const isComplexTask = Boolean(options.isPlanGeneration || options.groupSynthesis);
+  const primaryModel = isComplexTask ? configuredComplexModel : configuredChatModel;
+  const fallbackModel = isComplexTask ? configuredChatModel : configuredComplexModel;
 
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not defined in environment variables. Please check your .env configuration.');

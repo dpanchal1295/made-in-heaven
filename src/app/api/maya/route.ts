@@ -8,7 +8,7 @@ import { NeedsConfirmation } from '@/lib/maya/schemas';
 import { PlanPartSource } from '@/types/firestore';
 import { getSession } from '@/lib/auth/session';
 import { checkRateLimit } from '@/lib/security/rateLimit';
-import { generateFirstMessageLive } from '@/lib/maya/firstMessage';
+import { generateFirstMessageTemplate } from '@/lib/maya/firstMessage';
 
 export const maxDuration = 60;
 
@@ -65,9 +65,9 @@ export async function GET(req: NextRequest) {
       storage.getPendingConfirmations(homeId),
     ]);
 
-    // If room is empty, create initial welcoming Maya message
+    // If room is empty, create initial welcoming Maya message instantly from saved details without waiting for Gemini
     if (messages.length === 0) {
-      const initialEnvelope = await generateFirstMessageLive(
+      const initialEnvelope = generateFirstMessageTemplate(
         home.name || 'Your Celebration',
         home.profile || {},
         budget,

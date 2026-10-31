@@ -14,8 +14,41 @@ function formatDisplayDate(val: string | undefined): string {
   return val;
 }
 
+function formatCelebrantNatural(title: string): string {
+  if (!title) return 'your celebration';
+  const clean = title.trim();
+  // e.g. "Arjun, my son" -> "your son Arjun's birthday"
+  // e.g. "Arjun (1st Birthday)" -> "Arjun's 1st birthday"
+  // e.g. "Dad" / "Mum" -> "your Dad's birthday" / "your Mum's birthday"
+  // e.g. "Arjun's 30th Birthday" -> "Arjun's 30th birthday"
+  if (/birthday/i.test(clean)) {
+    return clean;
+  }
+  const sonMatch = clean.match(/^([^,]+),\s*(?:my\s+)?(son|daughter|husband|wife|brother|sister|father|mother|dad|mom|niece|nephew)/i);
+  if (sonMatch) {
+    const [, name, relation] = sonMatch;
+    return `your ${relation.toLowerCase()} ${name.trim()}'s birthday`;
+  }
+  if (/^(dad|mom|mum|papa|maa|grandpa|grandma|nani|dadi|nana|dada)$/i.test(clean)) {
+    return `your ${clean}'s birthday`;
+  }
+  const parenMatch = clean.match(/^([^(]+)\s*\(([^)]+)\)$/);
+  if (parenMatch) {
+    const [, name, milestone] = parenMatch;
+    const cleanMilestone = milestone.trim();
+    if (/birthday/i.test(cleanMilestone)) {
+      return `${name.trim()}'s ${cleanMilestone.toLowerCase()}`;
+    }
+    return `${name.trim()}'s ${cleanMilestone} birthday`;
+  }
+  if (clean.endsWith("'s") || clean.endsWith("s'")) {
+    return `${clean} birthday`;
+  }
+  return `${clean}'s birthday`;
+}
+
 /**
- * Fallback template message if live Gemini fails or in mock mode.
+ * Builds Maya's first message instantly from saved details without calling Gemini.
  */
 export function generateFirstMessageTemplate(
   homeName: string,
@@ -46,9 +79,12 @@ export function generateFirstMessageTemplate(
   const hasBudget = Boolean(budget?.planning_value || budget?.total);
 
   if (eventType === 'birthday') {
+    const rawCelebrant = homeName || (profile as any)?.celebrant || profile?.eventSubtype || 'the birthday';
+    const naturalCelebrant = formatCelebrantNatural(rawCelebrant);
+
     if (!hasDate) {
       return {
-        reply: `${greeting} I'm Maya, your celebration planner. Planning ${celebrationTitle} is going to be so special.${acknowledgedContext}\n\nTo start shaping things, what date or weekend are you thinking of for the party?`,
+        reply: `${greeting} I'm Maya, your celebration planner. Planning ${naturalCelebrant} is going to be so special.${acknowledgedContext}\n\nTo start shaping things, what date or weekend are you thinking of for the party?`,
         spoken_reply: `${greeting} What date or weekend are you thinking for the party?`,
         quick_replies: ['Next month', 'In 2 to 3 months', 'This weekend', 'Still deciding dates'],
         profile_updates: [],
@@ -58,7 +94,7 @@ export function generateFirstMessageTemplate(
     }
     if (!hasGuestCount) {
       return {
-        reply: `${greeting} I'm Maya, your celebration planner. Planning ${celebrationTitle} is going to be so much fun.${acknowledgedContext}\n\nRoughly how many guests are we expecting, and what's the mix like — mostly adults, kids, or family elders? Asking because that shapes the venue and food choices right away.`,
+        reply: `${greeting} I'm Maya, your celebration planner. Planning ${naturalCelebrant} is going to be so much fun.${acknowledgedContext}\n\nRoughly how many guests are we expecting, and what's the mix like — mostly adults, kids, or family elders? Asking because that shapes the venue and food choices right away.`,
         spoken_reply: `Roughly how many guests are you expecting, and what's the mix?`,
         quick_replies: ['Around 30 to 50 close friends', 'About 75 to 100 family & friends', 'Under 25 intimate group', 'Not sure yet'],
         profile_updates: [],
@@ -68,7 +104,7 @@ export function generateFirstMessageTemplate(
     }
     if (!hasBudget) {
       return {
-        reply: `${greeting} I'm Maya. Everything is coming along nicely for ${celebrationTitle}.${acknowledgedContext}\n\nDo you have an overall budget or spending range in mind? Having a rough number helps us pick the right venue and entertainment without any surprises.`,
+        reply: `${greeting} I'm Maya. Everything is coming along nicely for ${naturalCelebrant}.${acknowledgedContext}\n\nDo you have an overall budget or spending range in mind? Having a rough number helps us pick the right venue and entertainment without any surprises.`,
         spoken_reply: `Do you have an overall budget range in mind for the party?`,
         quick_replies: ['Under ₹1 lakh', 'Around ₹2 to 3 lakh', '₹5 lakh or more', 'Want your recommendation'],
         profile_updates: [],
@@ -77,7 +113,7 @@ export function generateFirstMessageTemplate(
       };
     }
     return {
-      reply: `${greeting} I'm Maya. We have the essentials saved for ${celebrationTitle}.${acknowledgedContext}\n\nWhat kind of theme or vibe are you picturing — casual sundowner, elegant dinner, or high-energy party?`,
+      reply: `${greeting} I'm Maya. We have the essentials saved for ${naturalCelebrant}.${acknowledgedContext}\n\nWhat kind of theme or vibe are you picturing — casual sundowner, elegant dinner, or high-energy party?`,
       spoken_reply: `What kind of theme or vibe are you picturing?`,
       quick_replies: ['Cozy dinner party', 'High-energy celebration', 'Outdoor sundowner', 'Traditional family gathering'],
       profile_updates: [],
