@@ -12,8 +12,8 @@ interface BudgetTabProps {
   budgetData: BudgetItem[] | null;
   cateringBreakdown: CateringFunctionPlateEstimate[];
   source?: PlanPartSource;
-  totalBudget?: number;
-  budgetRange?: { low: number; high: number };
+  totalBudget?: number | null;
+  budgetRange?: { low: number; high: number } | null;
   onGenerate: () => void;
   isLoading?: boolean;
 }
@@ -32,8 +32,8 @@ export function BudgetTab({
   budgetData,
   cateringBreakdown,
   source,
-  totalBudget = 1150000,
-  budgetRange = { low: 800000, high: 1500000 },
+  totalBudget,
+  budgetRange,
   onGenerate,
   isLoading = false,
 }: BudgetTabProps) {
@@ -56,8 +56,8 @@ export function BudgetTab({
   const estimatedPlanningMidpoint = Math.round((sumLow + sumHigh) / 2);
 
   // Check if planning value stretches target
-  const budgetTarget = totalBudget || budgetRange.high;
-  const isStretching = estimatedPlanningMidpoint > budgetTarget;
+  const budgetTarget = totalBudget || budgetRange?.high || estimatedPlanningMidpoint;
+  const isStretching = estimatedPlanningMidpoint > budgetTarget && budgetTarget > 0;
   const stretchAmount = isStretching ? estimatedPlanningMidpoint - budgetTarget : 0;
 
   return (
@@ -121,10 +121,10 @@ export function BudgetTab({
             STATED RANGE
           </span>
           <span className="font-serif text-2xl font-normal text-[#2A2521] mt-1 block">
-            {formatINR(budgetRange.low)} – {formatINR(budgetRange.high)}
+            {budgetRange ? `${formatINR(budgetRange.low)} – ${formatINR(budgetRange.high)}` : 'Flexible / Not set'}
           </span>
           <span className="text-xs text-[#6B645E] mt-1 block">
-            Couple's approved range
+            Approved budget range
           </span>
         </Card>
 
