@@ -23,10 +23,11 @@ export function generateFirstMessageTemplate(
   budget: PrivateBudget | null,
   speaker: Member
 ): MayaResponseEnvelope {
-  const eventType = profile.eventType || 'wedding';
+  const eventType = profile?.eventType || 'wedding';
   const rawName = speaker?.name?.trim();
   const isGuestWord = !rawName || rawName.toLowerCase() === 'guest' || rawName.toLowerCase() === 'guest planner';
   const greeting = isGuestWord ? 'Hello!' : `Hello ${rawName}!`;
+  const celebrationTitle = homeName || (profile as any)?.celebrant || profile?.eventSubtype || 'your celebration';
 
   const city = profile.city;
   const formattedDate = formatDisplayDate(profile.date);
@@ -47,7 +48,7 @@ export function generateFirstMessageTemplate(
   if (eventType === 'birthday') {
     if (!hasDate) {
       return {
-        reply: `${greeting} I'm Maya, your celebration planner. Planning ${homeName} is going to be so special.${acknowledgedContext}\n\nTo start shaping things, what date or weekend are you thinking of for the party?`,
+        reply: `${greeting} I'm Maya, your celebration planner. Planning ${celebrationTitle} is going to be so special.${acknowledgedContext}\n\nTo start shaping things, what date or weekend are you thinking of for the party?`,
         spoken_reply: `${greeting} What date or weekend are you thinking for the party?`,
         quick_replies: ['Next month', 'In 2 to 3 months', 'This weekend', 'Still deciding dates'],
         profile_updates: [],
@@ -57,7 +58,7 @@ export function generateFirstMessageTemplate(
     }
     if (!hasGuestCount) {
       return {
-        reply: `${greeting} I'm Maya, your celebration planner. Planning ${homeName} is going to be so much fun.${acknowledgedContext}\n\nRoughly how many guests are we expecting, and what's the mix like — mostly adults, kids, or family elders? Asking because that shapes the venue and food choices right away.`,
+        reply: `${greeting} I'm Maya, your celebration planner. Planning ${celebrationTitle} is going to be so much fun.${acknowledgedContext}\n\nRoughly how many guests are we expecting, and what's the mix like — mostly adults, kids, or family elders? Asking because that shapes the venue and food choices right away.`,
         spoken_reply: `Roughly how many guests are you expecting, and what's the mix?`,
         quick_replies: ['Around 30 to 50 close friends', 'About 75 to 100 family & friends', 'Under 25 intimate group', 'Not sure yet'],
         profile_updates: [],
@@ -67,7 +68,7 @@ export function generateFirstMessageTemplate(
     }
     if (!hasBudget) {
       return {
-        reply: `${greeting} I'm Maya. Everything is coming along nicely for ${homeName}.${acknowledgedContext}\n\nDo you have an overall budget or spending range in mind? Having a rough number helps us pick the right venue and entertainment without any surprises.`,
+        reply: `${greeting} I'm Maya. Everything is coming along nicely for ${celebrationTitle}.${acknowledgedContext}\n\nDo you have an overall budget or spending range in mind? Having a rough number helps us pick the right venue and entertainment without any surprises.`,
         spoken_reply: `Do you have an overall budget range in mind for the party?`,
         quick_replies: ['Under ₹1 lakh', 'Around ₹2 to 3 lakh', '₹5 lakh or more', 'Want your recommendation'],
         profile_updates: [],
@@ -76,7 +77,7 @@ export function generateFirstMessageTemplate(
       };
     }
     return {
-      reply: `${greeting} I'm Maya. We have the essentials saved for ${homeName}.${acknowledgedContext}\n\nWhat kind of theme or vibe are you picturing — casual sundowner, elegant dinner, or high-energy party?`,
+      reply: `${greeting} I'm Maya. We have the essentials saved for ${celebrationTitle}.${acknowledgedContext}\n\nWhat kind of theme or vibe are you picturing — casual sundowner, elegant dinner, or high-energy party?`,
       spoken_reply: `What kind of theme or vibe are you picturing?`,
       quick_replies: ['Cozy dinner party', 'High-energy celebration', 'Outdoor sundowner', 'Traditional family gathering'],
       profile_updates: [],
@@ -88,7 +89,7 @@ export function generateFirstMessageTemplate(
   if (eventType === 'community') {
     if (!hasDate) {
       return {
-        reply: `${greeting} I'm Maya, your celebration planner. Bringing everyone together for ${homeName} is such a wonderful initiative.${acknowledgedContext}\n\nWhich dates or festival weekend are you targeting?`,
+        reply: `${greeting} I'm Maya, your celebration planner. Bringing everyone together for ${celebrationTitle} is such a wonderful initiative.${acknowledgedContext}\n\nWhich dates or festival weekend are you targeting?`,
         spoken_reply: `${greeting} Which dates are you targeting?`,
         quick_replies: ['Upcoming festival weekend', 'Next month', 'In 3 to 6 months', 'Date still tentative'],
         profile_updates: [],
@@ -98,7 +99,7 @@ export function generateFirstMessageTemplate(
     }
     if (!hasGuestCount) {
       return {
-        reply: `${greeting} I'm Maya. Bringing people together for ${homeName} is going to be memorable.${acknowledgedContext}\n\nWhat kind of footfall or crowd size are you anticipating throughout the event? Asking so we can plan venue capacity and crowd flow early.`,
+        reply: `${greeting} I'm Maya. Bringing people together for ${celebrationTitle} is going to be memorable.${acknowledgedContext}\n\nWhat kind of footfall or crowd size are you anticipating throughout the event? Asking so we can plan venue capacity and crowd flow early.`,
         spoken_reply: `What kind of footfall or crowd size are you expecting?`,
         quick_replies: ['About 200 to 500 people', '500 to 1,000 attendees', 'Over 1,000 gathering', 'Just our neighborhood society'],
         profile_updates: [],
@@ -107,7 +108,7 @@ export function generateFirstMessageTemplate(
       };
     }
     return {
-      reply: `${greeting} I'm Maya. Great to collaborate on ${homeName}.${acknowledgedContext}\n\nWhat are the main cultural programs or highlights planned — live performances, food stalls, or prayer rituals?`,
+      reply: `${greeting} I'm Maya. Great to collaborate on ${celebrationTitle}.${acknowledgedContext}\n\nWhat are the main cultural programs or highlights planned — live performances, food stalls, or prayer rituals?`,
       spoken_reply: `What are the main cultural programs or highlights planned?`,
       quick_replies: ['Cultural performances & food', 'Pooja & community banquet', 'Music & dance evening', 'Exhibition & stalls'],
       profile_updates: [],
