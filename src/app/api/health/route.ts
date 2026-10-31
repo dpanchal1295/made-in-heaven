@@ -29,9 +29,11 @@ export async function GET() {
     services: {
       geminiConfigured,
       geminiModel: process.env.GEMINI_MODEL || 'not_set',
+      geminiChatModel: process.env.GEMINI_CHAT_MODEL || 'not_set',
       firebaseConfigured: isFirebaseConfigured(),
       storageDriver: process.env.STORAGE_DRIVER || 'local',
     },
+    version: '0ff7814',
     storageDriver: process.env.STORAGE_DRIVER || 'local',
     timestamp: new Date().toISOString(),
   });
