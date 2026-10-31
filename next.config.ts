@@ -4,17 +4,17 @@ const isProd = process.env.NODE_ENV === 'production';
 
 // CSP Directives:
 // Allows Google Fonts (fonts.googleapis.com, fonts.gstatic.com)
-// Allows Firebase Auth and Firestore endpoints
+// Allows Firebase Auth and Firestore endpoints, Google Accounts auth iframe & popups
 // Allows 'unsafe-inline' and 'unsafe-eval' required by Next.js client hydration and Framer Motion
 const cspHeader = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   font-src 'self' https://fonts.gstatic.com data:;
   img-src 'self' data: blob: https:;
   media-src 'self' data: blob:;
-  connect-src 'self' https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com;
-  frame-src 'self' https://apis.google.com https://*.firebaseapp.com;
+  connect-src 'self' https://apis.google.com https://accounts.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com;
+  frame-src 'self' https://apis.google.com https://accounts.google.com https://*.firebaseapp.com;
   frame-ancestors 'none';
   base-uri 'self';
   form-action 'self';
@@ -44,6 +44,10 @@ const nextConfig: NextConfig = {
           {
             key: 'X-Frame-Options',
             value: 'DENY',
+          },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
           },
           {
             key: 'Content-Security-Policy',

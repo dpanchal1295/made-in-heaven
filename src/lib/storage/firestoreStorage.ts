@@ -14,6 +14,7 @@ import {
   Idea,
   Decision,
   HomeInvite,
+  UserRecord,
 } from '@/types/firestore';
 import { ProfileUpdate } from '@/lib/maya/schemas';
 import { parseRangeAndPlanningValue } from '@/lib/utils/format';
@@ -812,6 +813,16 @@ export class FirestoreWeddingStorage implements IWeddingStorage {
 
   async deleteInvite(token: string): Promise<void> {
     await this.db.collection('invites').doc(token).delete();
+  }
+
+  async getUser(uid: string): Promise<UserRecord | null> {
+    const snap = await this.db.collection('users').doc(uid).get();
+    return snap.exists ? (restoreFromFirestore(snap.data() as UserRecord)) : null;
+  }
+
+  async saveUser(user: UserRecord): Promise<UserRecord> {
+    await this.db.collection('users').doc(user.uid).set(sanitizeForFirestore(user));
+    return user;
   }
 
   async resetAllDemoData(): Promise<void> {

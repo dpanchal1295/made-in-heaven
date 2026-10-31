@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE_NAME } from '@/lib/auth/session';
+import { checkOrigin } from '@/lib/security/originCheck';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  if (!checkOrigin(req)) {
+    return NextResponse.json({ success: false, error: 'Forbidden: Invalid origin' }, { status: 403 });
+  }
+
   const response = NextResponse.json({
     success: true,
     message: 'Logged out successfully',
@@ -19,4 +24,3 @@ export async function POST() {
 
   return response;
 }
-

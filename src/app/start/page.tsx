@@ -12,14 +12,15 @@ import { EventType } from '@/types/firestore';
 function StartForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, setHomeId } = useAuth();
+  const { user, setHomeId, isLoading } = useAuth();
 
   const typeParam = searchParams.get('type') as EventType | null;
   const initialType: EventType = (typeParam === 'birthday' || typeParam === 'community') ? typeParam : 'wedding';
 
   const [selectedEventType, setSelectedEventType] = useState<EventType>(initialType);
   const [eventSubtype, setEventSubtype] = useState('');
-  const [celebrantOrGroupNames, setCelebrantOrGroupNames] = useState(user?.name || '');
+  const [hostDisplayName, setHostDisplayName] = useState('');
+  const [celebrantOrGroupNames, setCelebrantOrGroupNames] = useState('');
   const [celebrationDate, setCelebrationDate] = useState('');
   const [city, setCity] = useState('');
   const [isCreatingHome, setIsCreatingHome] = useState(false);
@@ -32,6 +33,20 @@ function StartForm() {
 
   // Active form view ('select' | 'create' | 'join')
   const [activeView, setActiveView] = useState<'select' | 'create' | 'join'>('select');
+
+  // Check auth: if unauthenticated, redirect to signin with return URL
+  useEffect(() => {
+    if (!isLoading && !user) {
+      const typeQuery = typeParam ? `&type=${typeParam}` : '';
+      router.replace(`/signin?redirect=/start${typeQuery}`);
+    }
+  }, [user, isLoading, typeParam, router]);
+
+  useEffect(() => {
+    if (user?.name) {
+      setHostDisplayName(user.name);
+    }
+  }, [user?.name]);
 
   useEffect(() => {
     if (typeParam === 'wedding' || typeParam === 'birthday' || typeParam === 'community') {
@@ -57,6 +72,15 @@ function StartForm() {
 
     setIsCreatingHome(true);
     try {
+      // If user provided or changed their display name, save it
+      if (hostDisplayName.trim() && hostDisplayName.trim() !== user?.name) {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update_profile', name: hostDisplayName.trim() }),
+        }).catch(() => {});
+      }
+
       const res = await fetch('/api/homes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -312,6 +336,22 @@ function StartForm() {
                 </div>
               )}
 
+              {/* Host / Your Display Name (Editable for guests and Google users) */}
+              <div className="space-y-1.5">
+                <label htmlFor="host-name" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
+                  Your Name (Host)
+                </label>
+                <input
+                  id="host-name"
+                  type="text"
+                  placeholder="e.g. Diya Sharma or Uncle Rajesh"
+                  value={hostDisplayName}
+                  onChange={(e) => setHostDisplayName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
+                  required
+                />
+              </div>
+
               <div className="space-y-1.5">
                 <label htmlFor="names" className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]">
                   {nameFieldLabel}
@@ -414,10 +454,6 @@ function StartForm() {
                   className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-base tracking-widest font-mono text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden uppercase min-h-[44px]"
                   required
                 />
-              </div>
-
-              <div className="p-4 bg-[#F1EDE8] border border-[#E4DED6] text-xs text-[#2A2521] flex items-center justify-between">
-                <span>Demo codes: <strong className="font-mono">MIH-2026</strong> (Wedding), <strong className="font-mono">MIH-BDAY</strong> (Birthday), <strong className="font-mono">MIH-GARBA</strong> (Community)</span>
               </div>
 
               <div className="pt-2">

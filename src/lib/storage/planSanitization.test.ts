@@ -107,6 +107,8 @@ class InMemoryWeddingStorage implements IWeddingStorage {
   async createInvite(i: any) { return i; }
   async getInvite() { return null; }
   async deleteInvite() { return; }
+  async getUser() { return null; }
+  async saveUser(u: any) { return u; }
   async resetAllDemoData() {
     this.homes.set('demo-home-1', {
       id: 'demo-home-1',

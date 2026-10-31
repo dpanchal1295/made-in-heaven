@@ -1,24 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { SUPPORTED_LANGUAGES } from '@/lib/utils/i18n';
 import { Logo } from '@/components/common/Logo';
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Badge } from '@/components/ui';
-import { ArrowRight, ArrowLeft } from 'lucide-react';
+import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
+import { ArrowLeft, User, Sparkles } from 'lucide-react';
 
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { signIn, signInAsDemoCouple, user, isDemoMode } = useAuth();
+  const { user, signInWithGoogle, continueAsGuest } = useAuth();
 
-  const urlLang = searchParams.get('lang') || 'en';
+  const redirectUrl = searchParams.get('redirect') || searchParams.get('next') || '/start';
+  const typeParam = searchParams.get('type');
 
-  const [name, setName] = useState('');
-  const [emailOrPhone, setEmailOrPhone] = useState('');
-  const [language, setLanguage] = useState(urlLang);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingGuest, setLoadingGuest] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,36 +25,36 @@ function SignInForm() {
       if (user.homeId) {
         router.replace('/home');
       } else {
-        router.replace('/start');
+        const dest = typeParam ? `${redirectUrl}?type=${typeParam}` : redirectUrl;
+        router.replace(dest);
       }
     }
-  }, [user, router]);
+  }, [user, redirectUrl, typeParam, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleSignIn = async () => {
     setError(null);
-
-    if (!name.trim()) {
-      setError('Please enter your name.');
-      return;
+    setLoadingGoogle(true);
+    try {
+      const res = await signInWithGoogle();
+      if (!res.success) {
+        setError(res.error || 'Failed to sign in with Google');
+      }
+    } finally {
+      setLoadingGoogle(false);
     }
-    if (!emailOrPhone.trim()) {
-      setError('Please enter your phone number or email.');
-      return;
-    }
-
-    signIn({
-      name: name.trim(),
-      emailOrPhone: emailOrPhone.trim(),
-      preferredLanguage: language,
-    });
-
-    router.push('/start');
   };
 
-  const handleDemoCouple = () => {
-    signInAsDemoCouple();
-    router.push('/home');
+  const handleGuestSignIn = async () => {
+    setError(null);
+    setLoadingGuest(true);
+    try {
+      const res = await continueAsGuest();
+      if (!res.success) {
+        setError(res.error || 'Failed to start guest session');
+      }
+    } finally {
+      setLoadingGuest(false);
+    }
   };
 
   return (
@@ -65,139 +64,100 @@ function SignInForm() {
         <div className="text-center space-y-2">
           <Logo href="/welcome" size="lg" className="justify-center" />
           <p className="font-micro text-xs text-[#6B645E] uppercase tracking-[0.15em] pt-1">
-            SIGN IN TO START OR JOIN YOUR CELEBRATION HOME
+            SIGN IN TO PLAN TOGETHER WITH MAYA
           </p>
         </div>
 
-        {/* Demo Couple Quick Shortcut (only when demo mode active) */}
-        {isDemoMode && (
-          <div className="bg-[#F1EDE8] border border-[#E4DED6] p-6 text-center space-y-3">
-            <div className="flex items-center justify-center gap-2">
-              <span className="font-micro text-[11px] text-[#94512F] uppercase tracking-[0.2em] font-semibold">
-                EVALUATION & REVIEW MODE
-              </span>
-              <Badge variant="outline" size="sm" className="font-micro text-[#94512F]">
-                DEMO
-              </Badge>
-            </div>
-            <p className="text-xs text-[#6B645E] leading-relaxed">
-              Skip sign-in and jump right into Aarav & Diya’s live Pune wedding with 300 guests and ₹8 Lakh budget.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleDemoCouple}
-              className="w-full text-xs font-medium bg-white hover:bg-[#FCFBF8]"
-            >
-              <span>Open Demo Couple Wedding</span>
-              <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </Button>
+        {/* Error Notification */}
+        {error && (
+          <div
+            role="alert"
+            className="p-4 bg-red-50 border border-red-200 text-red-800 text-xs leading-relaxed"
+          >
+            {error}
           </div>
         )}
 
         {/* Main Sign In Card */}
-        <Card className="border border-[#E4DED6] bg-white p-6 sm:p-8 space-y-6">
-          <CardHeader className="p-0 pb-4 border-b border-[#E4DED6]">
-            <CardTitle className="text-xl">
-              Sign In
+        <Card className="border border-[#E4DED6] bg-white p-6 sm:p-8 space-y-6 shadow-sm">
+          <CardHeader className="p-0 space-y-1">
+            <CardTitle className="font-serif text-2xl text-[#2A2521] font-normal">
+              Begin your celebration
             </CardTitle>
             <CardDescription className="text-xs text-[#6B645E]">
-              No password needed. Your session is saved securely in your browser.
+              Plan an Indian wedding, milestone birthday, or community festival.
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="p-0 pt-2">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="p-3 bg-[#F1EDE8] border border-[#94512F]/40 text-xs text-[#94512F]">
-                  {error}
-                </div>
-              )}
-
-              {/* Name */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="user-name"
-                  className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]"
-                >
-                  Your Name
-                </label>
-                <input
-                  id="user-name"
-                  type="text"
-                  placeholder="e.g. Diya Sharma or Aarav Kapoor"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] placeholder-[#6B645E]/50 focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                  required
+          <CardContent className="p-0 space-y-4">
+            {/* Google Sign In Button */}
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={loadingGoogle || loadingGuest}
+              onClick={handleGoogleSignIn}
+              className="w-full flex items-center justify-center gap-3 py-6 border-[#E4DED6] hover:bg-[#F9F7F4] text-[#2A2521] font-medium text-sm transition-all"
+            >
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 />
-              </div>
-
-              {/* Phone or Email */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="user-contact"
-                  className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]"
-                >
-                  Phone Number or Email
-                </label>
-                <input
-                  id="user-contact"
-                  type="text"
-                  placeholder="+91 98765 43210 or diya@example.com"
-                  value={emailOrPhone}
-                  onChange={(e) => setEmailOrPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] placeholder-[#6B645E]/50 focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                  required
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
                 />
-              </div>
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+              <span>{loadingGoogle ? 'Signing in with Google...' : 'Continue with Google'}</span>
+            </Button>
 
-              {/* Preferred Language */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="user-language"
-                  className="block font-micro text-[11px] text-[#6B645E] uppercase tracking-[0.15em]"
-                >
-                  Preferred Language
-                </label>
-                <select
-                  id="user-language"
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-[#E4DED6] bg-white text-sm text-[#2A2521] focus:border-[#2A2521] focus:ring-1 focus:ring-[#2A2521] outline-hidden min-h-[44px]"
-                >
-                  {SUPPORTED_LANGUAGES.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.nativeLabel} ({lang.label})
-                    </option>
-                  ))}
-                </select>
+            {/* Subtle Divider */}
+            <div className="relative py-2 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#E4DED6]" />
               </div>
+              <span className="relative px-3 bg-white text-[11px] font-micro uppercase tracking-wider text-[#A39B94]">
+                OR
+              </span>
+            </div>
 
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  className="w-full min-h-[48px]"
-                >
-                  <span>Continue</span>
-                  <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
-                </Button>
-              </div>
-            </form>
+            {/* Continue as Guest Button */}
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={loadingGoogle || loadingGuest}
+              onClick={handleGuestSignIn}
+              className="w-full flex items-center justify-center gap-2 py-6 border-[#E4DED6] hover:bg-[#F9F7F4] text-[#2A2521] font-medium text-sm transition-all"
+            >
+              <User className="w-4 h-4 text-[#8E4A00]" />
+              <span>{loadingGuest ? 'Creating guest session...' : 'Continue as guest'}</span>
+            </Button>
+
+            {/* Exact Approved Guest Privacy Note */}
+            <p className="text-[12px] text-[#6B645E] leading-relaxed pt-2 text-center">
+              Guest plans are saved on this browser only. Sign in with Google to keep them across devices.
+            </p>
           </CardContent>
         </Card>
 
         {/* Back Link */}
-        <div className="text-center">
+        <div className="text-center pt-2">
           <Link
             href="/welcome"
-            className="inline-flex items-center gap-1.5 font-micro text-[11px] uppercase tracking-[0.15em] text-[#6B645E] hover:text-[#2A2521]"
+            className="inline-flex items-center gap-1.5 text-xs text-[#8E4A00] hover:text-[#2A2521] tracking-wider uppercase font-medium transition-colors"
           >
-            <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
-            <span>Back to welcome</span>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Return to Overview</span>
           </Link>
         </div>
       </div>
@@ -207,14 +167,16 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <React.Suspense
+    <Suspense
       fallback={
-        <div className="min-h-screen bg-[#FCFBF8] flex items-center justify-center p-4">
-          <div className="w-6 h-6 border border-[#2A2521] border-t-transparent animate-spin" />
+        <div className="min-h-screen bg-[#FCFBF8] flex items-center justify-center">
+          <span className="font-micro text-xs uppercase tracking-widest text-[#8E4A00]">
+            Loading Made in Heaven...
+          </span>
         </div>
       }
     >
       <SignInForm />
-    </React.Suspense>
+    </Suspense>
   );
 }

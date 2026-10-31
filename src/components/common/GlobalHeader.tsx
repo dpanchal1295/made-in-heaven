@@ -3,20 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth, DEMO_MEMBERS } from '@/lib/auth/AuthContext';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { SUPPORTED_LANGUAGES } from '@/lib/utils/i18n';
-import { getRoleLabel } from '@/lib/utils/roles';
 import { Logo } from '@/components/common/Logo';
-import { User, Globe, Menu, X, ArrowRight, ChevronDown } from 'lucide-react';
+import { User, Globe, ArrowRight, ChevronDown, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function GlobalHeader() {
   const pathname = usePathname();
-  const { user, isDemoMode, updateUserLanguage, switchMember } = useAuth();
+  const { user, updateUserLanguage, switchHome, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
-  const [demoSwitcherOpen, setDemoSwitcherOpen] = useState(false);
+  const [celebrationsDropdownOpen, setCelebrationsDropdownOpen] = useState(false);
 
   const isWelcomePage =
     pathname === '/welcome' ||
@@ -34,10 +33,11 @@ export function GlobalHeader() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change
+  // Close menus on route change
   useEffect(() => {
     setMobileMenuOpen(false);
     setLangDropdownOpen(false);
+    setCelebrationsDropdownOpen(false);
   }, [pathname]);
 
   const isTransparent = isWelcomePage && !isScrolled;
@@ -58,8 +58,7 @@ export function GlobalHeader() {
     { label: 'About', href: '/about' },
   ];
 
-  const navLinks = user ? signedInLinks : signedOutLinks;
-
+  const navLinks = user?.homeId ? signedInLinks : signedOutLinks;
   const currentLang = user?.preferredLanguage || 'en';
 
   return (
@@ -75,42 +74,27 @@ export function GlobalHeader() {
           {/* Brand Logo (Left) */}
           <div className="flex items-center gap-3">
             <Logo
-              href={user ? '/home' : '/welcome'}
+              href={user?.homeId ? '/home' : '/welcome'}
               variant={isTransparent ? 'light' : 'dark'}
               size="md"
             />
-
-            {isDemoMode && (
-              <span
-                className={`hidden lg:inline-block font-micro px-2 py-0.5 border text-[10px] tracking-[0.2em] uppercase ${
-                  isTransparent
-                    ? 'border-white/40 text-white/90'
-                    : 'border-[#94512F]/40 text-[#94512F]'
-                }`}
-              >
-                Demo mode
-              </span>
-            )}
           </div>
 
-          {/* Centered Small Uppercase Nav Links (Desktop) */}
-          <nav
-            aria-label="Main Navigation"
-            className="hidden md:flex items-center gap-8 lg:gap-10 absolute left-1/2 -translate-x-1/2"
-          >
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-6 lg:gap-8 font-nav text-[12px] tracking-[0.15em] uppercase">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const active = pathname === link.href;
               return (
                 <Link
                   key={link.label}
                   href={link.href}
-                  className={`font-nav text-[12px] tracking-[0.15em] uppercase transition-colors duration-200 relative py-1 focus-visible:outline-2 focus-visible:outline-[#A8603E] ${
+                  className={`transition-colors py-1 relative ${
                     isTransparent
-                      ? isActive
-                        ? 'text-white font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1px] after:bg-white'
+                      ? active
+                        ? 'text-white font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-white'
                         : 'text-white/80 hover:text-white'
-                      : isActive
-                      ? 'text-[#2A2521] font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1px] after:bg-[#2A2521]'
+                      : active
+                      ? 'text-[#2A2521] font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-[#A8603E]'
                       : 'text-[#6B645E] hover:text-[#2A2521]'
                   }`}
                 >
@@ -120,85 +104,88 @@ export function GlobalHeader() {
             })}
           </nav>
 
-          {/* Icons & Actions (Right) */}
-          <div className="flex items-center gap-3 sm:gap-5">
-            {/* Demo Member Switcher (Demo Mode Only) */}
-            {isDemoMode && user && (
+          {/* Right Header Utilities: Celebrations Dropdown, Language, Profile */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* My Celebrations Dropdown (For authenticated users) */}
+            {user && (
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setDemoSwitcherOpen(!demoSwitcherOpen)}
-                  aria-label="Demo Member Switcher"
-                  aria-expanded={demoSwitcherOpen}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs border transition-colors cursor-pointer ${
+                  onClick={() => setCelebrationsDropdownOpen(!celebrationsDropdownOpen)}
+                  aria-expanded={celebrationsDropdownOpen}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-xs transition-colors cursor-pointer ${
                     isTransparent
-                      ? 'border-white/30 bg-black/20 text-white hover:bg-black/40'
-                      : 'border-[#E4DED6] bg-white text-[#2A2521] hover:bg-[#F1EDE8]'
+                      ? 'border-white/30 text-white hover:bg-white/10'
+                      : 'border-[#E4DED6] bg-white text-[#2A2521] hover:bg-[#F9F7F4]'
                   }`}
                 >
-                  <span className="font-micro text-[10px] uppercase text-[#94512F] tracking-wider font-semibold">
-                    Viewing as:
+                  <span className="font-micro text-[10px] uppercase text-[#8E4A00] font-semibold hidden sm:inline">
+                    Celebration:
                   </span>
-                  <span className="font-medium text-xs truncate max-w-[90px] sm:max-w-[120px]">
-                    {user.name.split(' ')[0]}
-                  </span>
-                  <span className="font-micro text-[9px] uppercase px-1 py-0.2 bg-[#F1EDE8] text-[#2A2521] border border-[#E4DED6] hidden sm:inline">
-                    {user.permission}
+                  <span className="font-medium text-xs truncate max-w-[100px] sm:max-w-[130px]">
+                    {user.homeName || 'My Celebrations'}
                   </span>
                   <ChevronDown className="w-3 h-3 text-[#6B645E]" />
                 </button>
 
-                {demoSwitcherOpen && (
+                {celebrationsDropdownOpen && (
                   <div
                     className="absolute right-0 mt-2 w-64 bg-[#FCFBF8] border border-[#E4DED6] shadow-lg py-1.5 z-50 text-[#2A2521]"
                     role="menu"
                   >
-                    <div className="px-3 py-1 font-micro text-[10px] text-[#94512F] uppercase tracking-[0.15em] border-b border-[#E4DED6] mb-1 flex items-center justify-between">
-                      <span>Demo Mode Switcher</span>
-                      <span className="text-[9px] text-[#6B645E]">Refreshes App</span>
+                    <div className="px-3 py-1 font-micro text-[10px] text-[#8E4A00] uppercase tracking-[0.15em] border-b border-[#E4DED6] mb-1 flex items-center justify-between">
+                      <span>My Celebrations</span>
+                      {user.isGuest && (
+                        <span className="text-[9px] text-[#A39B94] font-normal lowercase">(guest)</span>
+                      )}
                     </div>
-                    {DEMO_MEMBERS.map((m) => {
-                      const isCurrent = user.uid === m.uid;
-                      const roleDisplay = getRoleLabel(m.permission, m.eventType);
 
-                      return (
-                        <button
-                          key={m.uid}
-                          type="button"
-                          role="menuitem"
-                          onClick={() => {
-                            setDemoSwitcherOpen(false);
-                            switchMember(m.uid);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-[#F1EDE8] transition-colors cursor-pointer ${
-                            isCurrent ? 'bg-[#F1EDE8] font-semibold text-[#94512F]' : 'text-[#2A2521]'
-                          }`}
-                        >
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span>{m.name}</span>
-                              {isCurrent && (
-                                <span className="font-micro text-[9px] uppercase text-[#94512F] font-bold">
-                                  (Active)
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-[#6B645E] mt-0.5">
-                              {m.homeName} • {m.preferredLanguage.toUpperCase()}
-                            </div>
-                          </div>
-                          <span
-                            className={`font-micro text-[9px] uppercase px-1.5 py-0.5 border ${
-                              m.permission === 'couple'
-                                ? 'bg-[#F1EDE8] border-[#94512F]/40 text-[#94512F]'
-                                : 'bg-white border-[#E4DED6] text-[#6B645E]'
+                    {user.homes && user.homes.length > 0 ? (
+                      user.homes.map((h) => {
+                        const isCurrent = user.homeId === h.id;
+                        return (
+                          <button
+                            key={h.id}
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setCelebrationsDropdownOpen(false);
+                              switchHome(h.id);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-[#F1EDE8] transition-colors cursor-pointer ${
+                              isCurrent ? 'bg-[#F1EDE8] font-semibold text-[#8E4A00]' : 'text-[#2A2521]'
                             }`}
                           >
-                            {roleDisplay}
-                          </span>
-                        </button>
-                      );
-                    })}
+                            <div className="truncate mr-2">
+                              <div className="truncate font-medium">{h.name}</div>
+                              <div className="text-[10px] text-[#6B645E] uppercase font-micro">
+                                {h.eventType || 'Celebration'}
+                              </div>
+                            </div>
+                            {isCurrent && (
+                              <span className="font-micro text-[9px] uppercase px-1.5 py-0.5 bg-white border border-[#8E4A00]/40 text-[#8E4A00] shrink-0 font-bold">
+                                Active
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="px-3 py-2 text-xs text-[#6B645E]">
+                        No celebrations yet
+                      </div>
+                    )}
+
+                    <div className="pt-1 mt-1 border-t border-[#E4DED6]">
+                      <Link
+                        href="/start"
+                        onClick={() => setCelebrationsDropdownOpen(false)}
+                        className="w-full text-left px-3 py-2 text-xs flex items-center gap-1.5 text-[#8E4A00] hover:bg-[#F1EDE8] font-medium transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Create new celebration</span>
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>
@@ -250,7 +237,7 @@ export function GlobalHeader() {
               )}
             </div>
 
-            {/* Profile or Sign-in (Line icon) */}
+            {/* Profile or Sign-in */}
             {user ? (
               <Link
                 href="/settings"
@@ -278,7 +265,7 @@ export function GlobalHeader() {
               </Link>
             )}
 
-            {/* Mobile Animated Hamburger Toggle (Hamburger to X) */}
+            {/* Mobile Animated Hamburger Toggle */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -303,7 +290,7 @@ export function GlobalHeader() {
         </div>
       </header>
 
-      {/* Mobile Animated Full-Screen Cream Overlay Menu */}
+      {/* Mobile Animated Overlay Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
@@ -314,15 +301,7 @@ export function GlobalHeader() {
             className="fixed inset-0 top-16 bg-[#FCFBF8] z-30 flex flex-col justify-between p-6 sm:p-10 overflow-y-auto border-t border-[#E4DED6] md:hidden"
           >
             <div className="space-y-6 pt-4">
-              {isDemoMode && (
-                <div className="pb-3 border-b border-[#E4DED6]">
-                  <span className="font-micro px-2 py-0.5 border border-[#94512F]/40 text-[#94512F] text-[10px] tracking-[0.2em] uppercase">
-                    Demo mode active
-                  </span>
-                </div>
-              )}
-
-              {/* Large Serif Links with 60ms Stagger */}
+              {/* Large Serif Links */}
               <nav className="flex flex-col space-y-3">
                 {navLinks.map((link, idx) => (
                   <motion.div
@@ -343,7 +322,27 @@ export function GlobalHeader() {
                 ))}
               </nav>
 
-              {!user && (
+              {user ? (
+                <div className="pt-4 space-y-2">
+                  <Link
+                    href="/start"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full inline-flex items-center justify-center font-nav text-[12px] tracking-[0.15em] uppercase py-3.5 bg-[#A8603E] text-white hover:bg-[#94512F] transition-colors"
+                  >
+                    Create New Celebration
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      signOut();
+                    }}
+                    className="w-full inline-flex items-center justify-center font-nav text-[12px] tracking-[0.15em] uppercase py-3 border border-[#E4DED6] text-[#6B645E] hover:bg-[#F1EDE8] transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : (
                 <div className="pt-4">
                   <Link
                     href="/signin"

@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 /**
@@ -15,9 +15,6 @@ export const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
 };
 
-/**
- * Returns true if all essential Firebase configuration variables are provided.
- */
 export function isFirebaseConfigured(): boolean {
   return Boolean(
     firebaseConfig.apiKey &&
@@ -30,24 +27,45 @@ export function isFirebaseConfigured(): boolean {
 let app: FirebaseApp;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
+let googleProvider: GoogleAuthProvider | null = null;
 
 if (typeof window !== 'undefined' || isFirebaseConfigured()) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
   } catch (error) {
-    console.warn('Firebase initialization warning (credentials may not be configured yet):', error);
-    // Stub or fallback app instance if needed
+    console.warn('Firebase initialization warning:', error);
     if (getApps().length > 0) {
       app = getApp();
     } else {
-      app = initializeApp({ projectId: 'demo-placeholder', apiKey: 'demo' });
+      app = initializeApp({ projectId: 'placeholder-app', apiKey: 'placeholder' });
     }
   }
 } else {
-  // SSR placeholder
-  app = getApps().length > 0 ? getApp() : initializeApp({ projectId: 'demo-placeholder', apiKey: 'demo' });
+  app = getApps().length > 0 ? getApp() : initializeApp({ projectId: 'placeholder-app', apiKey: 'placeholder' });
 }
 
-export { app, auth, db };
+export function getClientApp(): FirebaseApp {
+  return app;
+}
+
+export function getClientAuth(): Auth {
+  if (!auth) auth = getAuth(app);
+  return auth;
+}
+
+export function getClientFirestore(): Firestore {
+  if (!db) db = getFirestore(app);
+  return db;
+}
+
+export function getGoogleAuthProvider(): GoogleAuthProvider {
+  if (!googleProvider) {
+    googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+  }
+  return googleProvider;
+}

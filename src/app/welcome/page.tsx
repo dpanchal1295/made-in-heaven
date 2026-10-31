@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -14,19 +14,13 @@ import { ArrowRight } from 'lucide-react';
 
 export default function WelcomePage() {
   const router = useRouter();
-  const { loginAsDemo } = useAuth();
-  const [loadingDemo, setLoadingDemo] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  const handleDemoSignIn = async (uid: string, homeId: string) => {
-    setLoadingDemo(homeId);
-    try {
-      const ok = await loginAsDemo(uid, homeId);
-      if (ok) router.push('/home');
-      else router.push('/signin');
-    } catch {
-      router.push('/signin');
-    } finally {
-      setLoadingDemo(null);
+  const handleStartPlanning = (type?: string) => {
+    if (user) {
+      router.push(type ? `/start?type=${type}` : '/start');
+    } else {
+      router.push(type ? `/signin?redirect=/start&type=${type}` : '/signin?redirect=/start');
     }
   };
 
@@ -53,7 +47,7 @@ export default function WelcomePage() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
           <Button
             size="lg"
-            onClick={() => router.push('/start')}
+            onClick={() => handleStartPlanning()}
             className="bg-[#A8603E] hover:bg-[#94512F] text-white border-0 px-8 py-4 font-sans tracking-widest text-xs font-medium uppercase shadow-lg transition-all"
           >
             START PLANNING
@@ -221,43 +215,40 @@ export default function WelcomePage() {
         </div>
       </section>
 
-      {/* 4. Try a Demo Row (Three Buttons) */}
-      <section className="py-20 sm:py-28 px-6 sm:px-12 md:px-20 lg:px-24 bg-[#FCFBF8]">
+      {/* 4. Ready to Plan CTA Section */}
+      <section className="py-20 sm:py-28 px-6 sm:px-12 md:px-20 lg:px-24 bg-[#FCFBF8] border-t border-[#E4DED6]">
         <div className="max-w-4xl mx-auto text-center">
           <Eyebrow className="mb-4">
-            INSTANT ACCESS
+            BEGIN PLANNING
           </Eyebrow>
           <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-normal text-[#2A2521] mb-6">
-            Try a demo celebration
+            Start your celebration with Maya
           </h2>
           <p className="font-sans text-base sm:text-lg text-[#6B645E] leading-relaxed mb-10 max-w-xl mx-auto">
-            Experience Made in Heaven with pre-loaded demo homes, sample family members, and interactive decision rooms.
+            Coordinate guest counts, budgets by function, itemized timelines, and family votes with ease.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
               size="lg"
-              disabled={loadingDemo !== null}
-              onClick={() => handleDemoSignIn('demo-aarav-1', 'demo-home-1')}
-              className="bg-[#A8603E] hover:bg-[#94512F] text-white py-4 font-sans tracking-widest text-xs uppercase"
+              onClick={() => handleStartPlanning('wedding')}
+              className="w-full sm:w-auto bg-[#A8603E] hover:bg-[#94512F] text-white px-8 py-4 font-sans tracking-widest text-xs uppercase shadow-md"
             >
-              {loadingDemo === 'demo-home-1' ? 'Loading...' : 'Try Wedding Demo'}
+              Plan a Wedding
             </Button>
             <Button
               size="lg"
-              disabled={loadingDemo !== null}
-              onClick={() => handleDemoSignIn('demo-ananya-host', 'demo-home-2')}
-              className="bg-[#9B4A6A] hover:bg-[#863A57] text-white py-4 font-sans tracking-widest text-xs uppercase"
+              onClick={() => handleStartPlanning('birthday')}
+              className="w-full sm:w-auto bg-[#9B4A6A] hover:bg-[#863A57] text-white px-8 py-4 font-sans tracking-widest text-xs uppercase shadow-md"
             >
-              {loadingDemo === 'demo-home-2' ? 'Loading...' : 'Try Birthday Demo'}
+              Plan a Birthday
             </Button>
             <Button
               size="lg"
-              disabled={loadingDemo !== null}
-              onClick={() => handleDemoSignIn('demo-vikram-org', 'demo-home-3')}
-              className="bg-[#A35700] hover:bg-[#8E4A00] text-white py-4 font-sans tracking-widest text-xs uppercase"
+              onClick={() => handleStartPlanning('community')}
+              className="w-full sm:w-auto bg-[#A35700] hover:bg-[#8E4A00] text-white px-8 py-4 font-sans tracking-widest text-xs uppercase shadow-md"
             >
-              {loadingDemo === 'demo-home-3' ? 'Loading...' : 'Try Community Demo'}
+              Plan a Community Event
             </Button>
           </div>
         </div>

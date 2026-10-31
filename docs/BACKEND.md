@@ -1,6 +1,6 @@
 # Made in Heaven — Backend Architecture & API Reference
 
-Made in Heaven is a wedding planning web application designed for Indian families, driven by **Maya** (an empathetic AI wedding manager).
+Made in Heaven is an event and wedding planning web application designed for Indian families, driven by **Maya** (an empathetic AI celebration manager).
 
 ---
 
@@ -9,15 +9,16 @@ Made in Heaven is a wedding planning web application designed for Indian familie
 ```
 Browser Client (React / Next.js)
   │
-  ├─ Cookie: mih_session (Demo Mode / HMAC signed)
-  └─ Header: Authorization: Bearer <Firebase_ID_Token> (Production Mode)
+  ├─ Cookie: mih_session (HMAC signed session cookie, 7 days)
+  └─ Firebase Auth (Client-side Google popup/redirect for identity)
          │
          ▼
 Next.js App Router (Server-Side Route Handlers)
   │
+  ├── checkOrigin(request) ─> [CSRF protection on all POST, PATCH, DELETE]
   ├── getSession(request) ──> [Session Validation & Caller Context]
-  ├── Rate Limiter ─────────> [In-memory sliding window]
-  ├── Zod Schemas ──────────> [Request validation & 2,000 char limits]
+  ├── Rate Limiter ─────────> [In-memory sliding window for Guest & Home creation]
+  ├── Zod Schemas ──────────> [Request validation & size limits]
   ├── Tally Engine ─────────> [src/lib/decisions/tally.ts (Pure deterministic code)]
   │
   ▼
@@ -27,8 +28,9 @@ Storage Layer (IWeddingStorage interface)
 ```
 
 ### Important Runtime Notes
-- **Deployed Demo Mode vs Production**: The deployed demo operates with `NEXT_PUBLIC_DEMO_MODE=true` using signed `httpOnly` session cookies (`mih_session`). This allows judges and evaluators to seamlessly switch between Aarav, Diya, Meenakshi, Kabir, and Rhea without requiring individual phone logins. Standard production mode uses Firebase Auth ID tokens (`Bearer <token>`).
-- **In-Memory Rate Limiting**: The rate limiter (`src/lib/security/rateLimit.ts`) operates per server instance on serverless platforms like Vercel. Each cold start or independent serverless instance maintains its own in-memory sliding window.
+- **Authentication**: Users authenticate either via **Google Sign-In** (Firebase Client Auth) or **Continue as Guest**. Google users exchange their Firebase ID token via `POST /api/auth/session` (verified using `firebase-admin`). Guest users are assigned a secure random UUID via `POST /api/auth/guest`. Both receive a 7-day signed `httpOnly`, `sameSite=lax`, `secure` session cookie (`mih_session`).
+- **CSRF & Origin Check**: Every mutating API route (`POST`, `PATCH`, `DELETE`) enforces origin validation checking that the incoming `Origin` (or `Referer`) matches `localhost`, `127.0.0.1`, or `https://made-in-heaven-uorx.vercel.app` (and Vercel preview environments).
+- **In-Memory Rate Limiting**: The rate limiter (`src/lib/security/rateLimit.ts`) operates per server instance on serverless platforms like Vercel. Each cold start or independent serverless instance maintains its own in-memory sliding window (e.g. 5 guest sessions per 10 minutes per IP; 5 homes per hour per IP).
 - **Budget Data Redaction**: Members without `canSeeBudget: true` (e.g. Advisors, Viewers) never receive budget figures. Budget data is stripped server-side across all endpoints and omitted from prompt context before any AI operations.
 - **Vote Tallying Principle**: Maya (the LLM) **never** counts votes or alters permissions. All tallying is performed deterministically by `src/lib/decisions/tally.ts`.
 
@@ -44,24 +46,25 @@ All routes return consistent JSON envelopes:
 
 | Endpoint | Method | Caller | Description | Request Body | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `/api/auth/demo` | `POST` | Anyone (Demo mode only) | Sets signed `httpOnly` cookie for selected demo member (`demo-aarav-1`, `demo-diya-1`, `demo-mother-1`, `demo-brother-1`, `demo-friend-1`) | `{ uid: string, homeId?: string }` | `{ success: true, member, homeId }` |
+| `/api/auth/session` | `POST` | Google signed-in client | Verifies Firebase ID token with `firebase-admin`, creates/updates user doc, sets `mih_session` cookie | `{ idToken: string }` | `{ success: true, user }` |
+| `/api/auth/guest` | `POST` | Anyone | Rate-limited guest user creation with random UID and custom display name, sets `mih_session` cookie | `{ displayName?: string }` | `{ success: true, user }` |
 | `/api/auth/logout` | `POST` | Any active user | Clears `mih_session` cookie | None | `{ success: true }` |
-| `/api/me` | `GET` | Authenticated member | Returns current member profile and home details | None | `{ success: true, member, homeId, canSeeBudget, permission }` |
-| `/api/demo/reset` | `POST` | Couple (Demo mode only) | Restores canonical demo home state ("Aarav and Diya", 5 members, default rooms, sample ideas) | None | `{ success: true, message }` |
+| `/api/me` | `GET` | Authenticated member | Returns current member profile, home details, and user celebrations | None | `{ success: true, member, homeId, homes, canSeeBudget, permission }` |
 
 ### Homes & Invites
 
 | Endpoint | Method | Caller | Description | Request Body | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `/api/homes` | `POST` | Authenticated user | Creates a new Home. Creator becomes `couple` | `{ coupleNames, date?, city?, eventType?, eventSubtype? }` | `{ success: true, home, member }` |
+| `/api/homes` | `POST` | Authenticated user | Creates a new Home. Creator becomes `couple` / host. Appends to user's `homeIds` | `{ coupleNames, date?, city?, eventType?, eventSubtype? }` | `{ success: true, home, member }` |
 | `/api/homes/[homeId]` | `GET` | Member of Home | Retrieves Home details | None | `{ success: true, home }` |
-| `/api/homes/[homeId]/invites` | `POST` | Couple only | Generates a 7-day secure invite token | None | `{ success: true, token, expiresAt, inviteUrl }` |
-| `/api/invites/[token]/accept` | `POST` | Authenticated user | Accepts an invite token and joins Home as viewer | `{ name?, relationship?, preferredLanguage? }` | `{ success: true, home, member }` |
+| `/api/homes/[homeId]/invites` | `POST` | Couple only | Generates a 7-day secure invite token with role configuration | `{ allowedRole?: string }` | `{ success: true, token, expiresAt, inviteUrl }` |
+| `/api/invites/[token]/accept` | `POST` | Authenticated user | Accepts an invite token and joins Home as specified role; associates home with user | `{ name?, relationship?, preferredLanguage? }` | `{ success: true, home, member }` |
 
-### Members & Permissions
+### Settings & Celebrations
 
 | Endpoint | Method | Caller | Description | Request Body | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| `/api/settings` | `PATCH` | Authenticated member | Updates home profile, or performs `action: 'switch_home'` to switch active celebration | `{ action: 'switch_home', homeId: string }` or home update fields | `{ success: true, home }` |
 | `/api/homes/[homeId]/members/[uid]` | `PATCH` | Couple (or self for language) | Couple updates `permission`, `canVote` (toggles voter/advisor), or `canSeeBudget`. Member updates `preferredLanguage` | `{ permission?, canVote?, canSeeBudget?, preferredLanguage? }` | `{ success: true, member }` |
 
 ### Rooms, Messages & Ideas
@@ -119,7 +122,8 @@ You can run Made in Heaven on the **100% free Firebase Spark plan** with zero co
 ### Step 3: Enable Firebase Authentication
 1. In the left sidebar, click **Build > Authentication**.
 2. Click **Get Started**.
-3. Enable **Email/Password** or **Anonymous** sign-in provider as desired.
+3. Enable **Google** sign-in provider in the Sign-in method tab.
+4. Add authorized domains (e.g. `localhost`, `made-in-heaven-uorx.vercel.app`).
 
 ### Step 4: Generate a Service Account (Firebase Admin)
 1. In the Firebase console, click the gear icon **⚙ > Project settings**.
@@ -146,5 +150,3 @@ Set in your `.env.local`:
 ```bash
 STORAGE_DRIVER=firestore
 ```
-Run `npm run seed` to initialize your Firestore database.
-

@@ -79,31 +79,18 @@ export interface ThemedLandingViewProps {
 
 export function ThemedLandingView({ config }: ThemedLandingViewProps) {
   const router = useRouter();
-  const { loginAsDemo, isLoading } = useAuth();
-  const [isDemoSigningIn, setIsDemoSigningIn] = useState(false);
+  const { user } = useAuth();
 
-  const handleTryDemo = async () => {
-    setIsDemoSigningIn(true);
-    try {
-      let uid = 'demo-aarav-1';
-      if (config.eventType === 'birthday') uid = 'demo-ananya-host';
-      if (config.eventType === 'community') uid = 'demo-vikram-org';
-
-      const success = await loginAsDemo(uid, config.demoHomeId);
-      if (success) {
-        router.push('/home');
-      } else {
-        router.push('/signin');
-      }
-    } catch {
-      router.push('/signin');
-    } finally {
-      setIsDemoSigningIn(false);
+  const handleStartPlanning = () => {
+    if (user) {
+      router.push(`/start?type=${config.eventType}`);
+    } else {
+      router.push(`/signin?redirect=/start&type=${config.eventType}`);
     }
   };
 
-  const handleStartPlanning = () => {
-    router.push(`/start?type=${config.eventType}`);
+  const handleLearnMore = () => {
+    router.push('/about');
   };
 
   return (
@@ -161,11 +148,10 @@ export function ThemedLandingView({ config }: ThemedLandingViewProps) {
           <Button
             size="lg"
             variant="outline"
-            onClick={handleTryDemo}
-            disabled={isDemoSigningIn}
+            onClick={handleLearnMore}
             className="border-white/50 text-white hover:bg-white hover:text-[#2A2521] px-8 py-4 font-sans tracking-widest text-xs font-medium uppercase backdrop-blur-sm transition-all"
           >
-            {isDemoSigningIn ? 'OPENING DEMO...' : config.hero.ctaSecondary}
+            {config.hero.ctaSecondary}
           </Button>
         </div>
       </CurtainHero>

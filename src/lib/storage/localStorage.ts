@@ -13,6 +13,7 @@ import {
   Idea,
   Decision,
   HomeInvite,
+  UserRecord,
 } from '@/types/firestore';
 import { ProfileUpdate } from '@/lib/maya/schemas';
 import { parseRangeAndPlanningValue } from '@/lib/utils/format';
@@ -34,6 +35,7 @@ interface StorageSchema {
   invites: Record<string, HomeInvite>; // token -> HomeInvite
   pendingConfirmations: Record<string, Record<string, PendingConfirmation>>; // homeId -> id -> PendingConfirmation
   plans: Record<string, WeddingPlan>; // homeId -> WeddingPlan
+  users: Record<string, UserRecord>; // uid -> UserRecord
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -83,6 +85,7 @@ export class LocalWeddingStorage implements IWeddingStorage {
     if (!schema.invites) schema.invites = {};
     if (!schema.pendingConfirmations) schema.pendingConfirmations = {};
     if (!schema.plans) schema.plans = {};
+    if (!schema.users) schema.users = {};
 
     if (schema.members && schema.members[DEFAULT_HOME_ID]) {
       // Clean up legacy combined member if present
@@ -269,6 +272,7 @@ export class LocalWeddingStorage implements IWeddingStorage {
         [DEFAULT_HOME_ID]: {},
       },
       plans: {},
+      users: {},
     };
   }
 
@@ -991,6 +995,20 @@ export class LocalWeddingStorage implements IWeddingStorage {
       delete data.invites[token];
       await this.persist();
     }
+  }
+
+  async getUser(uid: string): Promise<UserRecord | null> {
+    const data = await this.ensureInitialized();
+    const user = data.users?.[uid];
+    return user ? JSON.parse(JSON.stringify(user)) : null;
+  }
+
+  async saveUser(user: UserRecord): Promise<UserRecord> {
+    const data = await this.ensureInitialized();
+    if (!data.users) data.users = {};
+    data.users[user.uid] = { ...user };
+    await this.persist();
+    return JSON.parse(JSON.stringify(user));
   }
 
   async resetAllDemoData(): Promise<void> {

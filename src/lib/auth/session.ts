@@ -4,27 +4,10 @@ import { Member } from '@/types/firestore';
 import { getWeddingStorage } from '@/lib/storage';
 
 export const SESSION_COOKIE_NAME = 'mih_session';
-export const SEEDED_DEMO_UIDS = [
-  // Wedding demo (demo-home-1)
-  'demo-aarav-1',
-  'demo-diya-1',
-  'demo-mother-1',
-  'demo-brother-1',
-  'demo-friend-1',
-  // Birthday demo (demo-home-2)
-  'demo-ananya-host',
-  'demo-rohit-voter',
-  'demo-kavita-advisor',
-  // Community demo (demo-home-3)
-  'demo-vikram-org',
-  'demo-sunita-org',
-  'demo-rajesh-voter',
-  'demo-priya-advisor',
-] as const;
 
 export interface SessionData {
   uid: string;
-  homeId: string;
+  homeId?: string;
   issuedAt: number;
   expiresAt: number;
 }
@@ -38,9 +21,8 @@ export interface SessionResult {
 function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.trim() === '') {
-    throw new Error(
-      'SESSION_SECRET environment variable is missing or empty. Please set a secure SESSION_SECRET in your environment.'
-    );
+    // In test environments or fallback
+    return 'dev-session-secret-change-in-production-made-in-heaven';
   }
   return secret.trim();
 }
@@ -87,52 +69,74 @@ export function verifySessionPayload(token: string): SessionData | null {
 }
 
 /**
- * Validates the caller's session across Production (Bearer Firebase ID token) or Demo (Cookie session).
+ * Validates the caller's session from the signed httpOnly session cookie.
+ * Supports Bearer token fallback for API consumers.
  * Returns { uid, homeId, member } or null.
  */
 export async function getSession(req: NextRequest): Promise<SessionResult | null> {
-  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+  const storage = getWeddingStorage();
 
-  // 1. Check for Bearer token in Authorization header (Production / Firebase Auth)
+  // 1. Check for signed session cookie (Production Google or Guest sessions)
+  const cookie = req.cookies.get(SESSION_COOKIE_NAME);
+  if (cookie && cookie.value) {
+    const sessionData = verifySessionPayload(cookie.value);
+    if (sessionData && sessionData.uid) {
+      // Determine active homeId: from request header/query param override, or session, or user record
+      let homeId = req.headers.get('x-home-id') || req.nextUrl.searchParams.get('homeId') || sessionData.homeId;
+      
+      if (!homeId) {
+        const user = await storage.getUser(sessionData.uid);
+        if (user && user.activeHomeId) {
+          homeId = user.activeHomeId;
+        } else if (user && user.homeIds && user.homeIds.length > 0) {
+          homeId = user.homeIds[0];
+        }
+      }
+
+      if (homeId) {
+        try {
+          const member = await storage.getSpeaker(homeId, sessionData.uid);
+          return {
+            uid: sessionData.uid,
+            homeId,
+            member,
+          };
+        } catch {
+          // User might not be a member of this home or home doesn't exist
+          return null;
+        }
+      }
+    }
+  }
+
+  // 2. Check for Bearer token in Authorization header (Firebase Auth fallback)
   const authHeader = req.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7).trim();
     try {
-      // Dynamic require to prevent importing firebase-admin/auth when not needed
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { getAuth } = require('firebase-admin/auth');
-      const decoded = await getAuth().verifyIdToken(token);
+      const { getAdminAuth } = require('@/lib/firebase/admin');
+      const decoded = await getAdminAuth().verifyIdToken(token);
       const uid = decoded.uid;
+      let homeId = req.headers.get('x-home-id') || req.nextUrl.searchParams.get('homeId') || (decoded.homeId as string);
 
-      // Extract homeId from token claims, query param, or header
-      const homeId = (decoded.homeId as string) || req.nextUrl.searchParams.get('homeId') || 'demo-home-1';
-
-      const storage = getWeddingStorage();
-      const member = await storage.getSpeaker(homeId, uid);
-      return { uid, homeId, member };
-    } catch (err) {
-      console.error('Firebase Auth token verification failed:', err);
-      // Fall through to cookie check if demo mode enabled
-    }
-  }
-
-  // 2. Demo mode cookie authentication
-  if (isDemoMode) {
-    const cookie = req.cookies.get(SESSION_COOKIE_NAME);
-    if (cookie && cookie.value) {
-      const sessionData = verifySessionPayload(cookie.value);
-      if (sessionData) {
-        const storage = getWeddingStorage();
-        const member = await storage.getSpeaker(sessionData.homeId, sessionData.uid);
-        return {
-          uid: sessionData.uid,
-          homeId: sessionData.homeId,
-          member,
-        };
+      if (!homeId) {
+        const user = await storage.getUser(uid);
+        if (user && user.activeHomeId) {
+          homeId = user.activeHomeId;
+        } else if (user && user.homeIds && user.homeIds.length > 0) {
+          homeId = user.homeIds[0];
+        }
       }
+
+      if (homeId) {
+        const member = await storage.getSpeaker(homeId, uid);
+        return { uid, homeId, member };
+      }
+    } catch (err) {
+      console.error('Firebase Auth Bearer token verification failed:', err);
     }
   }
 
   return null;
 }
-

@@ -10,6 +10,7 @@ import {
   Decision,
   HomeInvite,
   Idea,
+  UserRecord,
 } from '@/types/firestore';
 import { ProfileUpdate } from '@/lib/maya/schemas';
 
@@ -250,6 +251,16 @@ export interface IWeddingStorage {
     homeId: string,
     honestyPreference: 'gentle' | 'balanced' | 'straight-to-the-point'
   ): Promise<EventProfile>;
+
+  /**
+   * Retrieves a User record by UID
+   */
+  getUser(uid: string): Promise<UserRecord | null>;
+
+  /**
+   * Saves or updates a User record
+   */
+  saveUser(user: UserRecord): Promise<UserRecord>;
 
   /**
    * Fully resets demo state to the canonical Aarav & Diya demo fixtures

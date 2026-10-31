@@ -2,253 +2,84 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { MemberPermission, IndianLanguage } from '@/types/firestore';
+import { getClientAuth, getGoogleAuthProvider } from '@/lib/firebase/client';
+import { signInWithPopup, signInWithRedirect, signOut as firebaseSignOut } from 'firebase/auth';
+
+export interface UserHomeSummary {
+  id: string;
+  name: string;
+  eventType?: string;
+}
 
 export interface AuthUser {
   uid: string;
   name: string;
-  emailOrPhone?: string;
+  email?: string;
+  isGuest: boolean;
   relationship: string;
   permission: MemberPermission;
   preferredLanguage: IndianLanguage | string;
   canSeeBudget: boolean;
   homeId: string | null;
+  homeName?: string | null;
+  eventType?: string;
+  homes?: UserHomeSummary[];
 }
-
-export interface DemoMemberOption {
-  uid: string;
-  name: string;
-  homeId: string;
-  homeName: string;
-  eventType: 'wedding' | 'birthday' | 'community';
-  relationship: string;
-  permission: MemberPermission;
-  preferredLanguage: string;
-  canSeeBudget: boolean;
-  label: string;
-}
-
-export const DEMO_MEMBERS: DemoMemberOption[] = [
-  // Demo 1: Wedding (Aarav & Diya)
-  {
-    uid: 'demo-aarav-1',
-    name: 'Aarav',
-    homeId: 'demo-home-1',
-    homeName: 'Aarav & Diya (Wedding)',
-    eventType: 'wedding',
-    relationship: 'couple',
-    permission: 'couple',
-    preferredLanguage: 'en',
-    canSeeBudget: true,
-    label: 'Aarav (Groom • Couple • Wedding)',
-  },
-  {
-    uid: 'demo-diya-1',
-    name: 'Diya',
-    homeId: 'demo-home-1',
-    homeName: 'Aarav & Diya (Wedding)',
-    eventType: 'wedding',
-    relationship: 'couple',
-    permission: 'couple',
-    preferredLanguage: 'en',
-    canSeeBudget: true,
-    label: 'Diya (Bride • Couple • Wedding)',
-  },
-  {
-    uid: 'demo-mother-1',
-    name: "Meenakshi (Diya's Mother)",
-    homeId: 'demo-home-1',
-    homeName: 'Aarav & Diya (Wedding)',
-    eventType: 'wedding',
-    relationship: 'mother',
-    permission: 'voter',
-    preferredLanguage: 'gu',
-    canSeeBudget: true,
-    label: "Meenakshi (Mother • Voter • Gujarati)",
-  },
-  {
-    uid: 'demo-brother-1',
-    name: "Kabir (Aarav's Brother)",
-    homeId: 'demo-home-1',
-    homeName: 'Aarav & Diya (Wedding)',
-    eventType: 'wedding',
-    relationship: 'brother',
-    permission: 'advisor',
-    preferredLanguage: 'hi',
-    canSeeBudget: false,
-    label: "Kabir (Brother • Advisor • Budget Hidden)",
-  },
-  {
-    uid: 'demo-friend-1',
-    name: "Rhea (Diya's Friend)",
-    homeId: 'demo-home-1',
-    homeName: 'Aarav & Diya (Wedding)',
-    eventType: 'wedding',
-    relationship: 'friend',
-    permission: 'viewer',
-    preferredLanguage: 'en',
-    canSeeBudget: false,
-    label: "Rhea (Friend • Viewer • English)",
-  },
-
-  // Demo 2: 60th Birthday in Ahmedabad (Ananya & family)
-  {
-    uid: 'demo-ananya-host',
-    name: 'Ananya',
-    homeId: 'demo-home-2',
-    homeName: "Ananya's 60th Birthday",
-    eventType: 'birthday',
-    relationship: 'daughter',
-    permission: 'couple', // Admin / Host
-    preferredLanguage: 'gu',
-    canSeeBudget: true,
-    label: 'Ananya (Daughter • Host • Birthday)',
-  },
-  {
-    uid: 'demo-rohit-voter',
-    name: 'Rohit',
-    homeId: 'demo-home-2',
-    homeName: "Ananya's 60th Birthday",
-    eventType: 'birthday',
-    relationship: 'son',
-    permission: 'voter',
-    preferredLanguage: 'en',
-    canSeeBudget: true,
-    label: 'Rohit (Son • Voter • Birthday)',
-  },
-  {
-    uid: 'demo-kavita-advisor',
-    name: 'Kavita',
-    homeId: 'demo-home-2',
-    homeName: "Ananya's 60th Birthday",
-    eventType: 'birthday',
-    relationship: 'sister',
-    permission: 'advisor',
-    preferredLanguage: 'hi',
-    canSeeBudget: false,
-    label: 'Kavita (Sister • Advisor • Birthday)',
-  },
-
-  // Demo 3: Sahyadri Heights Society Navratri Garba (Pune)
-  {
-    uid: 'demo-vikram-org',
-    name: 'Vikram',
-    homeId: 'demo-home-3',
-    homeName: 'Sahyadri Heights Society Garba',
-    eventType: 'community',
-    relationship: 'lead_organiser',
-    permission: 'couple', // Admin / Organiser
-    preferredLanguage: 'mr',
-    canSeeBudget: true,
-    label: 'Vikram (Secretary • Organiser • Garba)',
-  },
-  {
-    uid: 'demo-sunita-org',
-    name: 'Sunita',
-    homeId: 'demo-home-3',
-    homeName: 'Sahyadri Heights Society Garba',
-    eventType: 'community',
-    relationship: 'cultural_head',
-    permission: 'couple', // Admin / Organiser
-    preferredLanguage: 'hi',
-    canSeeBudget: true,
-    label: 'Sunita (Cultural Head • Organiser)',
-  },
-  {
-    uid: 'demo-rajesh-voter',
-    name: 'Rajesh',
-    homeId: 'demo-home-3',
-    homeName: 'Sahyadri Heights Society Garba',
-    eventType: 'community',
-    relationship: 'committee_member',
-    permission: 'voter',
-    preferredLanguage: 'mr',
-    canSeeBudget: true,
-    label: 'Rajesh (Treasurer • Voter • Garba)',
-  },
-  {
-    uid: 'demo-priya-advisor',
-    name: 'Priya',
-    homeId: 'demo-home-3',
-    homeName: 'Sahyadri Heights Society Garba',
-    eventType: 'community',
-    relationship: 'resident_volunteer',
-    permission: 'advisor',
-    preferredLanguage: 'en',
-    canSeeBudget: false,
-    label: 'Priya (Volunteer • Advisor • Garba)',
-  },
-];
 
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
-  isDemoMode: boolean;
-  signIn: (details: {
-    name: string;
-    emailOrPhone: string;
-    preferredLanguage?: string;
-    homeId?: string | null;
-  }) => Promise<void>;
-  signInAsDemoCouple: () => Promise<void>;
-  loginAsDemo: (uid: string, homeId?: string) => Promise<boolean>;
-  switchMember: (uid: string) => Promise<void>;
+  signInWithGoogle: (displayName?: string) => Promise<{ success: boolean; error?: string }>;
+  continueAsGuest: (displayName?: string) => Promise<{ success: boolean; error?: string }>;
+  switchHome: (homeId: string) => Promise<boolean>;
   updateUserLanguage: (lang: string) => Promise<void>;
   setHomeId: (homeId: string) => void;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const STORAGE_KEY = 'mih_user_session';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-
-  // Load active session from /api/me on mount (session cookie based)
-  useEffect(() => {
-    async function loadCurrentSession() {
-      try {
-        const res = await fetch('/api/me');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.member) {
-            const authUser: AuthUser = {
-              uid: data.member.uid,
-              name: data.member.name,
-              relationship: data.member.relationship,
-              permission: data.member.permission,
-              preferredLanguage: data.member.preferredLanguage,
-              canSeeBudget: data.member.canSeeBudget,
-              homeId: data.homeId || 'demo-home-1',
-            };
-            setUser(authUser);
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(authUser));
-            } catch { }
-            return;
-          }
+  const loadSession = useCallback(async () => {
+    try {
+      const res = await fetch('/api/me');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.authenticated) {
+          const authUser: AuthUser = {
+            uid: data.uid,
+            name: data.name || (data.member ? data.member.name : 'Host'),
+            email: data.email,
+            isGuest: data.isGuest ?? false,
+            relationship: data.member?.relationship || 'host',
+            permission: data.permission || data.member?.permission || 'couple',
+            preferredLanguage: data.member?.preferredLanguage || 'en',
+            canSeeBudget: data.canSeeBudget ?? true,
+            homeId: data.homeId || null,
+            homeName: data.homeName || null,
+            eventType: data.eventType || 'wedding',
+            homes: data.homes || [],
+          };
+          setUser(authUser);
+          return;
         }
-
-        // Fallback to localStorage if /api/me not found or unauthenticated
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && parsed.uid) {
-            setUser(parsed);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to parse auth user session:', e);
-      } finally {
-        setIsLoading(false);
       }
+      setUser(null);
+    } catch (e) {
+      console.error('Failed to load session:', e);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-
-    loadCurrentSession();
   }, []);
+
+  useEffect(() => {
+    loadSession();
+  }, [loadSession]);
 
   // Sync html lang attribute
   useEffect(() => {
@@ -257,144 +88,118 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user?.preferredLanguage]);
 
-  const persistUser = useCallback((updated: AuthUser | null) => {
-    setUser(updated);
-    if (updated) {
+  const signInWithGoogle = useCallback(
+    async (displayName?: string): Promise<{ success: boolean; error?: string }> => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      } catch (e) {
-        console.error('Failed to save auth session:', e);
-      }
-    } else {
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch (e) {
-        console.error('Failed to clear auth session:', e);
-      }
-    }
-  }, []);
+        const auth = getClientAuth();
+        const provider = getGoogleAuthProvider();
 
-  const signIn = useCallback(
-    async ({
-      name,
-      emailOrPhone,
-      preferredLanguage = 'en',
-      homeId = null,
-    }: {
-      name: string;
-      emailOrPhone: string;
-      preferredLanguage?: string;
-      homeId?: string | null;
-    }) => {
-      const newUser: AuthUser = {
-        uid: `user_${Date.now()}`,
-        name: name.trim(),
-        emailOrPhone: emailOrPhone.trim(),
-        relationship: 'couple',
-        permission: 'couple',
-        preferredLanguage,
-        canSeeBudget: true,
-        homeId,
-      };
-      persistUser(newUser);
-    },
-    [persistUser]
-  );
-
-  const loginAsDemo = useCallback(
-    async (uid: string, targetHomeId: string = 'demo-home-1'): Promise<boolean> => {
-      try {
-        const res = await fetch('/api/auth/demo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uid, homeId: targetHomeId }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const demoUser: AuthUser = {
-            uid: data.member.uid,
-            name: data.member.name,
-            relationship: data.member.relationship,
-            permission: data.member.permission,
-            preferredLanguage: data.member.preferredLanguage,
-            canSeeBudget: data.member.canSeeBudget,
-            homeId: data.homeId || targetHomeId,
-          };
-          persistUser(demoUser);
-          return true;
+        let credential;
+        try {
+          credential = await signInWithPopup(auth, provider);
+        } catch (popupErr: any) {
+          // If popup blocked or failed, attempt redirect as fallback
+          if (
+            popupErr.code === 'auth/popup-blocked' ||
+            popupErr.code === 'auth/popup-closed-by-user' ||
+            popupErr.code === 'auth/cancelled-popup-request'
+          ) {
+            try {
+              await signInWithRedirect(auth, provider);
+              return { success: true };
+            } catch (redirErr: any) {
+              return {
+                success: false,
+                error:
+                  'Google sign-in popup was blocked. Please allow popups for this site, or continue as a guest.',
+              };
+            }
+          }
+          throw popupErr;
         }
-      } catch (e) {
-        console.error('Error logging in as demo member:', e);
-      }
-      return false;
-    },
-    [persistUser]
-  );
 
-  const signInAsDemoCouple = useCallback(async () => {
-    await loginAsDemo('demo-aarav-1', 'demo-home-1');
-  }, [loginAsDemo]);
-
-  const switchMember = useCallback(
-    async (memberUid: string) => {
-      const targetMember = DEMO_MEMBERS.find((m) => m.uid === memberUid);
-      const targetHomeId = targetMember?.homeId || user?.homeId || 'demo-home-1';
-
-      try {
-        const res = await fetch('/api/auth/demo', {
+        const idToken = await credential.user.getIdToken();
+        const res = await fetch('/api/auth/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uid: memberUid, homeId: targetHomeId }),
+          body: JSON.stringify({
+            idToken,
+            displayName: displayName?.trim() || credential.user.displayName || undefined,
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          return { success: false, error: errData.error || 'Failed to establish session' };
+        }
+
+        await loadSession();
+        return { success: true };
+      } catch (err: any) {
+        console.error('Google sign-in error:', err);
+        return {
+          success: false,
+          error: err.message || 'Google sign-in encountered an error. Please try again or continue as guest.',
+        };
+      }
+    },
+    [loadSession]
+  );
+
+  const continueAsGuest = useCallback(
+    async (displayName?: string): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const res = await fetch('/api/auth/guest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            displayName: displayName?.trim() || undefined,
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          return { success: false, error: errData.error || 'Failed to create guest session' };
+        }
+
+        await loadSession();
+        return { success: true };
+      } catch (err: any) {
+        console.error('Guest sign-in error:', err);
+        return { success: false, error: 'Could not create guest session. Please try again.' };
+      }
+    },
+    [loadSession]
+  );
+
+  const switchHome = useCallback(
+    async (homeId: string): Promise<boolean> => {
+      try {
+        // Update active home on user profile
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'switch_home', homeId }),
         });
         if (res.ok) {
-          const data = await res.json();
-          const updated: AuthUser = {
-            uid: data.member.uid,
-            name: data.member.name,
-            relationship: data.member.relationship,
-            permission: data.member.permission,
-            preferredLanguage: data.member.preferredLanguage,
-            canSeeBudget: data.member.canSeeBudget,
-            homeId: data.homeId || targetHomeId,
-          };
-          persistUser(updated);
-          // Hard reload or trigger state refresh across all routes
+          await loadSession();
           if (typeof window !== 'undefined') {
             window.location.reload();
           }
-          return;
+          return true;
         }
       } catch (e) {
-        console.error('Failed to switch member via demo API:', e);
+        console.error('Failed to switch home:', e);
       }
-
-      if (!targetMember) return;
-
-      const fallback: AuthUser = {
-        uid: targetMember.uid,
-        name: targetMember.name,
-        relationship: targetMember.relationship,
-        permission: targetMember.permission,
-        preferredLanguage: targetMember.preferredLanguage,
-        canSeeBudget: targetMember.canSeeBudget,
-        homeId: targetHomeId,
-      };
-      persistUser(fallback);
-      if (typeof window !== 'undefined') {
-        window.location.reload();
-      }
+      return false;
     },
-    [user?.homeId, persistUser]
+    [loadSession]
   );
 
   const updateUserLanguage = useCallback(
     async (lang: string) => {
       if (!user) return;
-      const updated: AuthUser = {
-        ...user,
-        preferredLanguage: lang,
-      };
-      persistUser(updated);
+      setUser((prev) => (prev ? { ...prev, preferredLanguage: lang } : null));
 
       if (user.homeId) {
         try {
@@ -412,20 +217,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     },
-    [user, persistUser]
+    [user]
   );
 
-  const setHomeId = useCallback(
-    (homeId: string) => {
-      if (!user) return;
-      const updated: AuthUser = {
-        ...user,
-        homeId,
-      };
-      persistUser(updated);
-    },
-    [user, persistUser]
-  );
+  const setHomeId = useCallback((homeId: string) => {
+    setUser((prev) => (prev ? { ...prev, homeId } : null));
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
@@ -433,22 +230,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {
       console.error('Logout error:', e);
     }
-    persistUser(null);
-  }, [persistUser]);
+    try {
+      const auth = getClientAuth();
+      await firebaseSignOut(auth);
+    } catch {
+      // Ignore firebase client signout errors
+    }
+    setUser(null);
+  }, []);
 
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
-        isDemoMode,
-        signIn,
-        signInAsDemoCouple,
-        loginAsDemo,
-        switchMember,
+        signInWithGoogle,
+        continueAsGuest,
+        switchHome,
         updateUserLanguage,
         setHomeId,
         signOut,
+        refreshSession: loadSession,
       }}
     >
       {children}

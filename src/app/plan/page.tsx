@@ -56,8 +56,12 @@ export default function PlanPage() {
   // Load plan state from /api/maya/plan
   const fetchPlanState = useCallback(async () => {
     try {
-      const homeId = user?.homeId || 'demo-home-1';
-      const uid = user?.uid || '';
+      if (!user?.homeId) {
+        setIsLoading(false);
+        return;
+      }
+      const homeId = user.homeId;
+      const uid = user.uid;
       const res = await fetch(`/api/maya/plan?homeId=${homeId}&uid=${uid}`, {
         headers: {
           'x-member-uid': uid,
@@ -89,8 +93,12 @@ export default function PlanPage() {
   const handleGeneratePart = async (part: PlanTabKey) => {
     setIsGeneratingTab(true);
     try {
-      const homeId = user?.homeId || 'demo-home-1';
-      const uid = user?.uid || '';
+      if (!user?.homeId) {
+        setIsLoading(false);
+        return;
+      }
+      const homeId = user.homeId;
+      const uid = user.uid;
       const res = await fetch('/api/maya/plan', {
         method: 'POST',
         headers: {
@@ -119,8 +127,12 @@ export default function PlanPage() {
   const handleGenerateAll = async () => {
     setIsGeneratingAll(true);
     try {
-      const homeId = user?.homeId || 'demo-home-1';
-      const uid = user?.uid || '';
+      if (!user?.homeId) {
+        setIsLoading(false);
+        return;
+      }
+      const homeId = user.homeId;
+      const uid = user.uid;
       const res = await fetch('/api/maya/plan', {
         method: 'POST',
         headers: {
@@ -148,8 +160,12 @@ export default function PlanPage() {
   // Toggle checklist vendor item
   const handleToggleChecklist = async (vendorType: string, isBooked: boolean) => {
     try {
-      const homeId = user?.homeId || 'demo-home-1';
-      const uid = user?.uid || '';
+      if (!user?.homeId) {
+        setIsLoading(false);
+        return;
+      }
+      const homeId = user.homeId;
+      const uid = user.uid;
       const res = await fetch('/api/maya/plan', {
         method: 'POST',
         headers: {
@@ -202,8 +218,12 @@ export default function PlanPage() {
   // Clear plan
   const handleClearPlan = async () => {
     try {
-      const homeId = user?.homeId || 'demo-home-1';
-      const uid = user?.uid || '';
+      if (!user?.homeId) {
+        setIsLoading(false);
+        return;
+      }
+      const homeId = user.homeId;
+      const uid = user.uid;
       const res = await fetch('/api/maya/plan', {
         method: 'POST',
         headers: {

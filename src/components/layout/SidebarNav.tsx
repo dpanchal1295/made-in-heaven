@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const { user, isDemoMode } = useAuth();
+  const { user } = useAuth();
 
   const isHome = pathname === '/home';
   const isChat = pathname.startsWith('/chat');
@@ -72,14 +72,6 @@ export function SidebarNav() {
             </span>
           </div>
         </Link>
-
-        {isDemoMode && (
-          <div className="mt-3">
-            <Badge variant="saffron" size="sm">
-              ⚡ Demo mode
-            </Badge>
-          </div>
-        )}
       </div>
 
       {/* Nav Links */}

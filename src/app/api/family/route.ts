@@ -1,3 +1,4 @@
+import { checkOrigin } from '@/lib/security/originCheck';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getWeddingStorage } from '@/lib/storage';
@@ -39,6 +40,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!checkOrigin(req as any)) {
+    return NextResponse.json({ success: false, error: 'Forbidden: Invalid origin' }, { status: 403 });
+  }
   try {
     const session = await getSession(req);
     if (!session) {

@@ -16,6 +16,21 @@ export type DecisionStatus = 'open' | 'runoff' | 'awaiting_couple' | 'closed';
 export type EventType = 'wedding' | 'birthday' | 'community';
 
 /**
+ * users/{uid}
+ * Top-level collection linking authenticated or guest users to their homes.
+ */
+export interface UserRecord {
+  uid: string;
+  name: string;
+  email?: string;
+  isGuest: boolean;
+  homeIds: string[];
+  activeHomeId?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
  * Event Profile JSON stored inside homes/{homeId}
  * CRITICAL RULE: Strictly NO budget fields inside profile (budget lives in homes/{homeId}/private/budget).
  */

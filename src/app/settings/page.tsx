@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, DEMO_MEMBERS } from '@/lib/auth/AuthContext';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
 import { SUPPORTED_LANGUAGES } from '@/lib/utils/i18n';
 import {
@@ -20,7 +20,7 @@ import { RotateCcw, Trash2, AlertCircle, LogOut } from 'lucide-react';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, signOut, switchMember, updateUserLanguage, isDemoMode } = useAuth();
+  const { user, signOut, updateUserLanguage } = useAuth();
 
   // Local settings state
   const [voiceSpeakerEnabled, setVoiceSpeakerEnabled] = useState(true);
@@ -283,85 +283,10 @@ export default function SettingsPage() {
               Settings & Preferences
             </h1>
             <p className="text-xs sm:text-sm text-[#6B645E] mt-1 font-sans">
-              Manage your profile, Maya communication style, privacy, and demo switches.
+              Manage your profile, Maya communication style, and celebration settings.
             </p>
           </div>
-          {isDemoMode && (
-            <Badge variant="outline" size="sm" className="font-micro text-[#94512F]">
-              DEMO MODE
-            </Badge>
-          )}
         </div>
-
-        {/* DEMO HELPER: Switch Member (Shown ONLY when NEXT_PUBLIC_DEMO_MODE=true) */}
-        {isDemoMode && (
-          <div className="p-6 bg-[#F1EDE8] border border-[#E4DED6] space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-micro text-[11px] text-[#94512F] uppercase tracking-[0.2em] font-semibold">
-                  DEMO HELPER: SWITCH MEMBER
-                </span>
-              </div>
-              <span className="font-micro text-[10px] text-[#6B645E] uppercase tracking-[0.15em]">
-                TEST ROLES & BUDGET PERMISSIONS
-              </span>
-            </div>
-
-            <p className="text-xs text-[#6B645E] leading-relaxed">
-              Select any member below to immediately act as them across the application:
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              {DEMO_MEMBERS.map((member) => {
-                const isActive = user?.uid === member.uid;
-                return (
-                  <button
-                    key={member.uid}
-                    type="button"
-                    onClick={() => {
-                      switchMember(member.uid);
-                      setToast({
-                        message: `Switched acting member to ${member.name}`,
-                        type: 'info',
-                      });
-                    }}
-                    className={`p-4 border text-left transition-all flex items-center justify-between gap-3 min-h-[48px] focus-visible:ring-1 focus-visible:ring-[#94512F] outline-hidden cursor-pointer ${
-                      isActive
-                        ? 'bg-white border-[#2A2521] ring-1 ring-[#2A2521]'
-                        : 'bg-white border-[#E4DED6] hover:border-[#2A2521]/60'
-                    }`}
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-serif font-medium text-[#2A2521] truncate">
-                          {member.name}
-                        </span>
-                        {isActive && (
-                          <span className="font-micro text-[10px] text-white bg-[#2A2521] px-1.5 py-0.5 uppercase tracking-wider">
-                            Active
-                          </span>
-                        )}
-                      </div>
-                      <span className="font-micro text-[10px] text-[#6B645E] block mt-1 uppercase tracking-wider">
-                        {member.relationship} • {member.permission} • {member.preferredLanguage.toUpperCase()}
-                      </span>
-                    </div>
-
-                    <span
-                      className={`font-micro text-[10px] uppercase tracking-wider px-2 py-0.5 border ${
-                        member.canSeeBudget
-                          ? 'border-[#2A2521] text-[#2A2521] bg-white'
-                          : 'border-[#E4DED6] text-[#6B645E] bg-[#F1EDE8]'
-                      }`}
-                    >
-                      {member.canSeeBudget ? 'Budget visible' : 'Budget hidden'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Section 1: Profile */}
         <Card className="border border-[#E4DED6] bg-white p-6 space-y-4">
@@ -387,8 +312,8 @@ export default function SettingsPage() {
                     {user?.permission.toUpperCase() || 'COUPLE'}
                   </Badge>
                 </div>
-                {user?.emailOrPhone && (
-                  <p className="text-xs text-[#6B645E] font-mono">{user.emailOrPhone}</p>
+                {user?.email && (
+                  <p className="text-xs text-[#6B645E] font-mono">{user.email}</p>
                 )}
               </div>
             </div>
@@ -644,16 +569,16 @@ export default function SettingsPage() {
         <Card className="border border-[#E4DED6] bg-white p-6 space-y-4">
           <CardHeader className="p-0 pb-3 border-b border-[#E4DED6]">
             <CardTitle className="text-lg">
-              7. Data & Demo Reset Controls
+              7. Data Management
             </CardTitle>
             <CardDescription className="text-xs text-[#6B645E]">
-              Clear plan tabs or restore default demo fixtures. All destructive actions require confirmation.
+              Clear plan tabs or reset onboarding conversation. All destructive actions require confirmation.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0 pt-2 space-y-3">
             <div className="flex items-center justify-between p-4 border border-[#E4DED6] bg-white flex-wrap gap-3">
               <div>
-                <p className="text-xs font-medium text-[#2A2521]">Clear Wedding Plan</p>
+                <p className="text-xs font-medium text-[#2A2521]">Clear Celebration Plan</p>
                 <p className="text-xs text-[#6B645E] mt-0.5">Resets all 6 generated tabs to blank</p>
               </div>
               <Button
@@ -678,21 +603,6 @@ export default function SettingsPage() {
                 className="text-xs text-[#2A2521] border-[#E4DED6] hover:bg-[#F1EDE8]"
               >
                 Restart Chat
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border border-[#E4DED6] bg-white flex-wrap gap-3">
-              <div>
-                <p className="text-xs font-medium text-[#2A2521]">Reset All Demo Data</p>
-                <p className="text-xs text-[#6B645E] mt-0.5">Restores canonical Aarav & Diya Pune fixtures</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsResetDemoModalOpen(true)}
-                className="text-xs text-[#94512F] border-[#94512F]/40 hover:bg-[#F1EDE8]"
-              >
-                Reset All Demo Data
               </Button>
             </div>
           </CardContent>

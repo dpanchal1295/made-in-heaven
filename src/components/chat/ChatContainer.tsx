@@ -59,8 +59,12 @@ export const ChatContainer: React.FC = () => {
     async function loadInitialState() {
       try {
         setIsInitializing(true);
-        const homeId = user?.homeId || 'demo-home-1';
-        const uid = user?.uid || '';
+        if (!user?.homeId) {
+          setIsInitializing(false);
+          return;
+        }
+        const homeId = user.homeId;
+        const uid = user.uid;
         const res = await fetch(`/api/maya?homeId=${homeId}&uid=${uid}`, {
           headers: {
             'x-member-uid': uid,
@@ -124,8 +128,9 @@ export const ChatContainer: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const homeId = user?.homeId || 'demo-home-1';
-      const uid = user?.uid || 'user-aarav';
+      const homeId = user?.homeId;
+      const uid = user?.uid;
+      if (!homeId || !uid) return;
       const res = await fetch('/api/maya', {
         method: 'POST',
         headers: {
@@ -209,8 +214,9 @@ export const ChatContainer: React.FC = () => {
     if (!confirmationId || isLoading) return;
     setIsLoading(true);
     try {
-      const homeId = user?.homeId || 'demo-home-1';
-      const uid = user?.uid || 'user-aarav';
+      const homeId = user?.homeId;
+      const uid = user?.uid;
+      if (!homeId || !uid) return;
       const res = await fetch('/api/maya/confirm', {
         method: 'POST',
         headers: {
